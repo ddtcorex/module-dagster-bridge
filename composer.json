@@ -1,0 +1,54 @@
+{
+    "name": "ddtcorex/module-dagster-bridge",
+    "description": "Optional Magento 2 REST endpoints that make catalog reads and category upserts cheap for dagster-magento",
+    "type": "magento2-module",
+    "license": "MIT",
+    "version": "1.0.0",
+    "keywords": [
+        "magento2",
+        "magento",
+        "dagster",
+        "catalog",
+        "etl",
+        "rest"
+    ],
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://mirror.mage-os.org/"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "magento/framework": "*",
+        "magento/module-backend": "*",
+        "magento/module-catalog": "*",
+        "magento/module-catalog-import-export": "*",
+        "magento/module-store": "*"
+    },
+    "require-dev": {
+        "magento/magento-coding-standard": "^41",
+        "phpstan/phpstan": "^1.12",
+        "phpunit/phpunit": "^10.5 || ^11.5 || ^12.0"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "DDTCoreX\\DagsterBridge\\": ""
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "magento/composer-dependency-version-audit-plugin": false
+        }
+    },
+    "scripts": {
+        "phpcs": "phpcs",
+        "phpstan": "phpstan analyse --no-progress",
+        "test": "phpunit -c Test/Unit/phpunit.xml.dist"
+    }
+}

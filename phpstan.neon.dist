@@ -1,0 +1,7 @@
+parameters:
+    level: 6
+    paths:
+        - Api
+        - Model
+        - Test
+    tmpDir: .phpstan.cache

@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<ruleset name="DDTCoreX DagsterBridge">
+    <description>Coding standard for the Dagster bridge module.</description>
+    <rule ref="Magento2"/>
+    <file>.</file>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/.phpstan.cache/*</exclude-pattern>
+    <exclude-pattern>*/.phpunit.cache/*</exclude-pattern>
+</ruleset>

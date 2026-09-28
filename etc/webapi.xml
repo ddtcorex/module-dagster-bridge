@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2026 DDTCoreX
+ * SPDX-License-Identifier: MIT
+ */
+-->
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi.xsd">
+    <route url="/V1/dagster-bridge/capabilities" method="GET">
+        <service class="DDTCoreX\DagsterBridge\Api\CapabilitiesInterface" method="get"/>
+        <resources>
+            <resource ref="DDTCoreX_DagsterBridge::read"/>
+        </resources>
+    </route>
+</routes>

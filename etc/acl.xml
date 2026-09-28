@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2026 DDTCoreX
+ * SPDX-License-Identifier: MIT
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="DDTCoreX_DagsterBridge::read"
+                          title="Dagster Bridge: read catalog data"
+                          sortOrder="90"/>
+                <resource id="DDTCoreX_DagsterBridge::write"
+                          title="Dagster Bridge: upsert categories"
+                          sortOrder="91"/>
+            </resource>
+        </resources>
+    </acl>
+</config>
