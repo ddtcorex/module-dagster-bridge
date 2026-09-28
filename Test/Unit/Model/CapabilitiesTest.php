@@ -86,7 +86,7 @@ class CapabilitiesTest extends TestCase
         $result = $this->makeModel($this->moduleDir)->get();
 
         self::assertSame('1.2.3', $result->getVersion());
-        self::assertSame(['products.index'], $result->getCapabilities());
+        self::assertSame(['products.index', 'products.attribute_values'], $result->getCapabilities());
     }
 
     public function testVersionIsEmptyWhenTheModuleIsNotRegistered(): void

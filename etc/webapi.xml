@@ -19,4 +19,10 @@
             <resource ref="DDTCoreX_DagsterBridge::read"/>
         </resources>
     </route>
+    <route url="/V1/dagster-bridge/products/attribute-values" method="POST">
+        <service class="DDTCoreX\DagsterBridge\Api\AttributeValuesInterface" method="get"/>
+        <resources>
+            <resource ref="DDTCoreX_DagsterBridge::read"/>
+        </resources>
+    </route>
 </routes>

@@ -17,4 +17,8 @@
                 type="DDTCoreX\DagsterBridge\Model\Data\ProductIndexItem"/>
     <preference for="DDTCoreX\DagsterBridge\Api\Data\ProductIndexPageInterface"
                 type="DDTCoreX\DagsterBridge\Model\Data\ProductIndexPage"/>
+    <preference for="DDTCoreX\DagsterBridge\Api\AttributeValuesInterface"
+                type="DDTCoreX\DagsterBridge\Model\AttributeValues"/>
+    <preference for="DDTCoreX\DagsterBridge\Api\Data\AttributeValueItemInterface"
+                type="DDTCoreX\DagsterBridge\Model\Data\AttributeValueItem"/>
 </config>

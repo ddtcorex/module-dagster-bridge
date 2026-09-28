@@ -24,10 +24,10 @@ module degrades per feature instead of failing.
 | Route | Method | ACL | Purpose |
 | --- | --- | --- | --- |
 | `/V1/dagster-bridge/capabilities` | GET | `DDTCoreX_DagsterBridge::read` | Module version and the capabilities this release exposes |
-| `/V1/dagster-bridge/products/index` | GET | `DDTCoreX_DagsterBridge::read` | `entity_id`, `sku`, `type_id`, `attribute_set_id`, store 0 `status` and `updated_at` for every product, keyset paginated with `after` and `limit` (default 5000, max 20000) |
 
-Later releases add `products/attribute-values` and `categories/upsert`; each
-one appears in the capabilities answer once it is finished.
+Later releases add `products/index`, `products/attribute-values` and
+`categories/upsert`; each one appears in the capabilities answer once it is
+finished.
 
 ## Install
 
