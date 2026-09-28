@@ -24,10 +24,14 @@ module degrades per feature instead of failing.
 | Route | Method | ACL | Purpose |
 | --- | --- | --- | --- |
 | `/V1/dagster-bridge/capabilities` | GET | `DDTCoreX_DagsterBridge::read` | Module version and the capabilities this release exposes |
+| `/V1/dagster-bridge/products/index` | GET | `DDTCoreX_DagsterBridge::read` | `entity_id`, `sku`, `type_id`, `attribute_set_id`, store 0 `status` and `updated_at` for every product, keyset paginated with `after` and `limit` (default 5000, max 20000) |
+| `/V1/dagster-bridge/products/attribute-values` | POST | `DDTCoreX_DagsterBridge::read` | Body `{skus, attribute_codes, store_id}`; one item per pair with `store_value` and `default_value` (at most 1000 SKUs and 50 codes per call) |
+| `/V1/dagster-bridge/categories/upsert` | POST | `DDTCoreX_DagsterBridge::write` | Body `{paths, root, separator}`; creates the missing categories and answers every requested path with its id, in one transaction |
 
-Later releases add `products/index`, `products/attribute-values` and
-`categories/upsert`; each one appears in the capabilities answer once it is
-finished.
+A null value is absent from the JSON, because Magento's serializer drops null
+keys: a client reads `store_value` and `default_value` as missing rather than
+null. `categories/upsert` needs the write resource and is the only endpoint of
+this module that changes anything.
 
 ## Install
 

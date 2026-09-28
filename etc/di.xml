@@ -21,4 +21,8 @@
                 type="DDTCoreX\DagsterBridge\Model\AttributeValues"/>
     <preference for="DDTCoreX\DagsterBridge\Api\Data\AttributeValueItemInterface"
                 type="DDTCoreX\DagsterBridge\Model\Data\AttributeValueItem"/>
+    <preference for="DDTCoreX\DagsterBridge\Api\CategoryUpsertInterface"
+                type="DDTCoreX\DagsterBridge\Model\CategoryUpsert"/>
+    <preference for="DDTCoreX\DagsterBridge\Api\Data\CategoryPathIdInterface"
+                type="DDTCoreX\DagsterBridge\Model\Data\CategoryPathId"/>
 </config>
