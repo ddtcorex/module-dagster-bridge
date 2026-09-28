@@ -11,4 +11,10 @@
                 type="DDTCoreX\DagsterBridge\Model\Capabilities"/>
     <preference for="DDTCoreX\DagsterBridge\Api\Data\CapabilitiesResultInterface"
                 type="DDTCoreX\DagsterBridge\Model\Data\CapabilitiesResult"/>
+    <preference for="DDTCoreX\DagsterBridge\Api\ProductIndexInterface"
+                type="DDTCoreX\DagsterBridge\Model\ProductIndex"/>
+    <preference for="DDTCoreX\DagsterBridge\Api\Data\ProductIndexItemInterface"
+                type="DDTCoreX\DagsterBridge\Model\Data\ProductIndexItem"/>
+    <preference for="DDTCoreX\DagsterBridge\Api\Data\ProductIndexPageInterface"
+                type="DDTCoreX\DagsterBridge\Model\Data\ProductIndexPage"/>
 </config>

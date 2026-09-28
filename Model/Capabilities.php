@@ -35,7 +35,7 @@ class Capabilities implements CapabilitiesInterface
     /**
      * Capabilities this release exposes, one entry per finished endpoint.
      */
-    private const CAPABILITIES = [];
+    private const CAPABILITIES = ['products.index'];
 
     /**
      * Factory of the answer object.

@@ -13,4 +13,10 @@
             <resource ref="DDTCoreX_DagsterBridge::read"/>
         </resources>
     </route>
+    <route url="/V1/dagster-bridge/products/index" method="GET">
+        <service class="DDTCoreX\DagsterBridge\Api\ProductIndexInterface" method="getPage"/>
+        <resources>
+            <resource ref="DDTCoreX_DagsterBridge::read"/>
+        </resources>
+    </route>
 </routes>

@@ -76,7 +76,7 @@ class CapabilitiesTest extends TestCase
         return new Capabilities($factory, $registrar, new Json(), new File());
     }
 
-    public function testReturnsVersionFromComposerJsonAndEmptyCapabilities(): void
+    public function testReturnsVersionFromComposerJsonAndTheReleasedCapabilities(): void
     {
         $this->writeComposerJson((string) json_encode([
             'name' => 'ddtcorex/module-dagster-bridge',
@@ -86,7 +86,7 @@ class CapabilitiesTest extends TestCase
         $result = $this->makeModel($this->moduleDir)->get();
 
         self::assertSame('1.2.3', $result->getVersion());
-        self::assertSame([], $result->getCapabilities());
+        self::assertSame(['products.index'], $result->getCapabilities());
     }
 
     public function testVersionIsEmptyWhenTheModuleIsNotRegistered(): void
