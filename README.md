@@ -24,12 +24,31 @@ module degrades per feature instead of failing.
 | Route | Method | ACL | Purpose |
 | --- | --- | --- | --- |
 | `/V1/dagster-bridge/capabilities` | GET | `DDTCoreX_DagsterBridge::read` | Module version and the capabilities this release exposes |
+| `/V1/dagster-bridge/products/index` | GET | `DDTCoreX_DagsterBridge::read` | `entity_id`, `sku`, `type_id`, `attribute_set_id`, store 0 `status` and `updated_at` for every product, keyset paginated with `after` and `limit` (default 5000, max 20000) |
+| `/V1/dagster-bridge/products/attribute-values` | POST | `DDTCoreX_DagsterBridge::read` | Body `{skus, attribute_codes, store_id}`; one item per pair with `store_value` and `default_value` (at most 1000 SKUs and 50 codes per call) |
+| `/V1/dagster-bridge/categories/upsert` | POST | `DDTCoreX_DagsterBridge::write` | Body `{paths, root, separator}`; creates the missing categories and answers every requested path with its id, in one transaction |
 
-Later releases add `products/index`, `products/attribute-values` and
-`categories/upsert`; each one appears in the capabilities answer once it is
-finished.
+A null value is absent from the JSON, because Magento's serializer drops null
+keys: a client reads `store_value` and `default_value` as missing rather than
+null. `categories/upsert` needs the write resource and is the only endpoint of
+this module that changes anything.
+
+## Access control
+
+The capabilities probe, the product index and the attribute values sit behind
+`DDTCoreX_DagsterBridge::read`; the category upsert sits behind
+`DDTCoreX_DagsterBridge::write`. Both resources are children of
+`Magento_Backend::admin`, so a role can grant exactly one of them.
+
+Create a Magento integration (System > Extensions > Integrations) with the read
+resource, or with a role that carries it, for a run that only reads. Add the
+write resource when the run also creates categories, and give the integration
+nothing else. The library never needs more than these two resources, and an
+admin token carries both already.
 
 ## Install
+
+From a tagged release:
 
 ```bash
 composer config repositories.dagster-bridge vcs https://github.com/ddtcorex/module-dagster-bridge
@@ -38,6 +57,20 @@ bin/magento module:enable DDTCoreX_DagsterBridge
 bin/magento setup:upgrade
 bin/magento cache:flush
 ```
+
+From a branch, before a tag exists (verified live in a 2.4.9 sandbox: the
+package resolves, installs under `vendor/ddtcorex/module-dagster-bridge` and
+`bin/magento module:status` reports it enabled):
+
+```bash
+composer config repositories.dagster-bridge vcs https://github.com/ddtcorex/module-dagster-bridge
+composer config minimum-stability dev
+composer config prefer-stable true
+composer require ddtcorex/module-dagster-bridge:dev-feat/bridge-v1
+```
+
+Both stability settings are needed: the package advertises itself through the
+VCS repository, and until a tag exists Composer only sees a `dev-` branch.
 
 For a checkout that is not installed through Composer, place it at
 `app/code/DDTCoreX/DagsterBridge` and run the same three `bin/magento`

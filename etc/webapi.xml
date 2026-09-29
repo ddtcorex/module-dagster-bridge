@@ -13,4 +13,22 @@
             <resource ref="DDTCoreX_DagsterBridge::read"/>
         </resources>
     </route>
+    <route url="/V1/dagster-bridge/products/index" method="GET">
+        <service class="DDTCoreX\DagsterBridge\Api\ProductIndexInterface" method="getPage"/>
+        <resources>
+            <resource ref="DDTCoreX_DagsterBridge::read"/>
+        </resources>
+    </route>
+    <route url="/V1/dagster-bridge/products/attribute-values" method="POST">
+        <service class="DDTCoreX\DagsterBridge\Api\AttributeValuesInterface" method="get"/>
+        <resources>
+            <resource ref="DDTCoreX_DagsterBridge::read"/>
+        </resources>
+    </route>
+    <route url="/V1/dagster-bridge/categories/upsert" method="POST">
+        <service class="DDTCoreX\DagsterBridge\Api\CategoryUpsertInterface" method="upsert"/>
+        <resources>
+            <resource ref="DDTCoreX_DagsterBridge::write"/>
+        </resources>
+    </route>
 </routes>

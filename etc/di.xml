@@ -11,4 +11,18 @@
                 type="DDTCoreX\DagsterBridge\Model\Capabilities"/>
     <preference for="DDTCoreX\DagsterBridge\Api\Data\CapabilitiesResultInterface"
                 type="DDTCoreX\DagsterBridge\Model\Data\CapabilitiesResult"/>
+    <preference for="DDTCoreX\DagsterBridge\Api\ProductIndexInterface"
+                type="DDTCoreX\DagsterBridge\Model\ProductIndex"/>
+    <preference for="DDTCoreX\DagsterBridge\Api\Data\ProductIndexItemInterface"
+                type="DDTCoreX\DagsterBridge\Model\Data\ProductIndexItem"/>
+    <preference for="DDTCoreX\DagsterBridge\Api\Data\ProductIndexPageInterface"
+                type="DDTCoreX\DagsterBridge\Model\Data\ProductIndexPage"/>
+    <preference for="DDTCoreX\DagsterBridge\Api\AttributeValuesInterface"
+                type="DDTCoreX\DagsterBridge\Model\AttributeValues"/>
+    <preference for="DDTCoreX\DagsterBridge\Api\Data\AttributeValueItemInterface"
+                type="DDTCoreX\DagsterBridge\Model\Data\AttributeValueItem"/>
+    <preference for="DDTCoreX\DagsterBridge\Api\CategoryUpsertInterface"
+                type="DDTCoreX\DagsterBridge\Model\CategoryUpsert"/>
+    <preference for="DDTCoreX\DagsterBridge\Api\Data\CategoryPathIdInterface"
+                type="DDTCoreX\DagsterBridge\Model\Data\CategoryPathId"/>
 </config>
