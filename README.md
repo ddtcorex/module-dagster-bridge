@@ -48,6 +48,8 @@ admin token carries both already.
 
 ## Install
 
+From a tagged release:
+
 ```bash
 composer config repositories.dagster-bridge vcs https://github.com/ddtcorex/module-dagster-bridge
 composer require ddtcorex/module-dagster-bridge:^1.0
@@ -55,6 +57,20 @@ bin/magento module:enable DDTCoreX_DagsterBridge
 bin/magento setup:upgrade
 bin/magento cache:flush
 ```
+
+From a branch, before a tag exists (verified live in a 2.4.9 sandbox: the
+package resolves, installs under `vendor/ddtcorex/module-dagster-bridge` and
+`bin/magento module:status` reports it enabled):
+
+```bash
+composer config repositories.dagster-bridge vcs https://github.com/ddtcorex/module-dagster-bridge
+composer config minimum-stability dev
+composer config prefer-stable true
+composer require ddtcorex/module-dagster-bridge:dev-feat/bridge-v1
+```
+
+Both stability settings are needed: the package advertises itself through the
+VCS repository, and until a tag exists Composer only sees a `dev-` branch.
 
 For a checkout that is not installed through Composer, place it at
 `app/code/DDTCoreX/DagsterBridge` and run the same three `bin/magento`
