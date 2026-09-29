@@ -33,6 +33,19 @@ keys: a client reads `store_value` and `default_value` as missing rather than
 null. `categories/upsert` needs the write resource and is the only endpoint of
 this module that changes anything.
 
+## Access control
+
+The capabilities probe, the product index and the attribute values sit behind
+`DDTCoreX_DagsterBridge::read`; the category upsert sits behind
+`DDTCoreX_DagsterBridge::write`. Both resources are children of
+`Magento_Backend::admin`, so a role can grant exactly one of them.
+
+Create a Magento integration (System > Extensions > Integrations) with the read
+resource, or with a role that carries it, for a run that only reads. Add the
+write resource when the run also creates categories, and give the integration
+nothing else. The library never needs more than these two resources, and an
+admin token carries both already.
+
 ## Install
 
 ```bash
