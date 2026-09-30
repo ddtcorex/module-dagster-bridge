@@ -50,6 +50,10 @@ so the tree is built exactly as a native product import builds it:
 - A `/` inside a name is allowed: pick another `separator` (for example `|`)
   and the module escapes the slash as the processor's own `\/` quoting. A
   name that ends with a backslash is rejected with 400.
+- Calls are serialised by the named lock `dagster_bridge_category_upsert`
+  (Magento's configured lock provider), so two concurrent calls that create
+  the same new path create it once and answer the same ids. A call that
+  cannot get the lock within 15 seconds answers 503 and can be retried.
 
 ## Access control
 

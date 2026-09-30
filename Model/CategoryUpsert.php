@@ -15,6 +15,8 @@ use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Catalog\Model\ResourceModel\Category as CategoryResource;
 use Magento\CatalogImportExport\Model\Import\Product\CategoryProcessor;
 use Magento\Framework\Exception\InputException;
+use Magento\Framework\Lock\LockManagerInterface;
+use Magento\Framework\Webapi\Exception as WebapiException;
 use Magento\Store\Model\Store;
 use Throwable;
 
@@ -29,10 +31,27 @@ use Throwable;
  *
  * The whole call runs in one transaction, owned by the category resource model
  * so that the after commit callbacks each saved category registers run on
- * commit and are dropped on rollback.
+ * commit and are dropped on rollback. Calls are serialised by a named lock, so
+ * two concurrent calls that create the same new path never both create it: the
+ * second one waits, then finds what the first one committed.
  */
 class CategoryUpsert implements CategoryUpsertInterface
 {
+    /**
+     * Name of the lock every upsert holds while it reads and writes the tree.
+     */
+    public const LOCK_NAME = 'dagster_bridge_category_upsert';
+
+    /**
+     * Seconds a call waits for the lock before it answers 503.
+     */
+    public const LOCK_TIMEOUT = 15;
+
+    /**
+     * HTTP status of a call that could not get the lock in time.
+     */
+    private const HTTP_SERVICE_UNAVAILABLE = 503;
+
     /**
      * The root above every store root, whose children are the tree roots.
      */
@@ -56,11 +75,11 @@ class CategoryUpsert implements CategoryUpsertInterface
     private $parser;
 
     /**
-     * Native category processor.
+     * Builds the native category processor once the lock is held.
      *
-     * @var CategoryProcessor
+     * @var CategoryProcessorFactory
      */
-    private $processor;
+    private $processorFactory;
 
     /**
      * Repository the root is looked up in.
@@ -84,24 +103,34 @@ class CategoryUpsert implements CategoryUpsertInterface
     private $categoryResource;
 
     /**
+     * Serialises concurrent upserts.
+     *
+     * @var LockManagerInterface
+     */
+    private $lockManager;
+
+    /**
      * @param CategoryPathParser $parser
-     * @param CategoryProcessor $processor
+     * @param CategoryProcessorFactory $processorFactory
      * @param CategoryRepositoryInterface $categoryRepository
      * @param CategoryPathIdFactory $itemFactory
      * @param CategoryResource $categoryResource
+     * @param LockManagerInterface $lockManager
      */
     public function __construct(
         CategoryPathParser $parser,
-        CategoryProcessor $processor,
+        CategoryProcessorFactory $processorFactory,
         CategoryRepositoryInterface $categoryRepository,
         CategoryPathIdFactory $itemFactory,
-        CategoryResource $categoryResource
+        CategoryResource $categoryResource,
+        LockManagerInterface $lockManager
     ) {
         $this->parser = $parser;
-        $this->processor = $processor;
+        $this->processorFactory = $processorFactory;
         $this->categoryRepository = $categoryRepository;
         $this->itemFactory = $itemFactory;
         $this->categoryResource = $categoryResource;
+        $this->lockManager = $lockManager;
     }
 
     /**
@@ -112,6 +141,7 @@ class CategoryUpsert implements CategoryUpsertInterface
      * @param string $separator
      * @return \DDTCoreX\DagsterBridge\Api\Data\CategoryPathIdInterface[]
      * @throws InputException
+     * @throws WebapiException When another upsert holds the lock for too long.
      */
     public function upsert(
         array $paths,
@@ -125,10 +155,42 @@ class CategoryUpsert implements CategoryUpsertInterface
         $this->assertRootExists($root);
         $joinedPaths = $this->joinForProcessor($paths, $root, $separator);
 
+        if (!$this->lockManager->lock(self::LOCK_NAME, self::LOCK_TIMEOUT)) {
+            throw new WebapiException(
+                __(
+                    'Another category upsert is still running after %1 seconds; retry the call later.',
+                    self::LOCK_TIMEOUT
+                ),
+                0,
+                self::HTTP_SERVICE_UNAVAILABLE
+            );
+        }
+
+        try {
+            return $this->upsertUnderLock($paths, $joinedPaths);
+        } finally {
+            $this->lockManager->unlock(self::LOCK_NAME);
+        }
+    }
+
+    /**
+     * Runs the upsert in one transaction, once the lock is held.
+     *
+     * @param string[] $paths
+     * @param string[] $joinedPaths
+     * @return \DDTCoreX\DagsterBridge\Api\Data\CategoryPathIdInterface[]
+     * @throws InputException
+     */
+    private function upsertUnderLock(array $paths, array $joinedPaths): array
+    {
+        // built here, not injected, so it reads the tree as the previous
+        // holder of the lock committed it
+        $processor = $this->processorFactory->create();
+
         $this->categoryResource->beginTransaction();
 
         try {
-            $ids = $this->upsertThroughProcessor($joinedPaths);
+            $ids = $this->upsertThroughProcessor($processor, $joinedPaths);
 
             $items = [];
             foreach (array_values($paths) as $index => $path) {
@@ -225,18 +287,19 @@ class CategoryUpsert implements CategoryUpsertInterface
     /**
      * Creates the paths with the native processor.
      *
+     * @param CategoryProcessor $processor
      * @param string[] $joinedPaths
      * @return int[] One category id per path, same order.
      * @throws InputException
      */
-    private function upsertThroughProcessor(array $joinedPaths): array
+    private function upsertThroughProcessor(CategoryProcessor $processor, array $joinedPaths): array
     {
         $delimiter = $this->pickPathDelimiter($joinedPaths);
-        $ids = $this->processor->upsertCategories(implode($delimiter, $joinedPaths), $delimiter);
+        $ids = $processor->upsertCategories(implode($delimiter, $joinedPaths), $delimiter);
 
-        $failures = $this->processor->getFailedCategories();
+        $failures = $processor->getFailedCategories();
         if ($failures !== []) {
-            $this->processor->clearFailedCategories();
+            $processor->clearFailedCategories();
             $failed = (string) ($failures[0]['category'] ?? '');
             throw new InputException(
                 __('Category path "%1" could not be created by the native processor.', $failed)

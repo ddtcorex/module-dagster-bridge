@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace DDTCoreX\DagsterBridge\Test\Unit\Model;
 
 use DDTCoreX\DagsterBridge\Model\CategoryPathParser;
+use DDTCoreX\DagsterBridge\Model\CategoryProcessorFactory;
 use DDTCoreX\DagsterBridge\Model\CategoryUpsert;
 use DDTCoreX\DagsterBridge\Model\Data\CategoryPathIdFactory;
 use Magento\Catalog\Api\CategoryRepositoryInterface;
@@ -17,7 +18,9 @@ use Magento\Catalog\Model\ResourceModel\Category as CategoryResource;
 use Magento\CatalogImportExport\Model\Import\Product\CategoryProcessor;
 use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\Framework\Exception\InputException;
+use Magento\Framework\Lock\LockManagerInterface;
 use Magento\Framework\ObjectManagerInterface;
+use Magento\Framework\Webapi\Exception as WebapiException;
 use PHPUnit\Framework\TestCase;
 
 class CategoryUpsertTest extends TestCase
@@ -30,6 +33,13 @@ class CategoryUpsertTest extends TestCase
     private $readStoreIds = [];
 
     /**
+     * Calls to the lock and to the processor factory, in order.
+     *
+     * @var string[]
+     */
+    private $calls = [];
+
+    /**
      * Builds the service over stubs that keep the database out of the test.
      *
      * The repository only answers the tree roots: the children of the
@@ -38,15 +48,39 @@ class CategoryUpsertTest extends TestCase
      * @param CategoryProcessor $processor
      * @param array $roots Root category id => name.
      * @param CategoryResource|null $categoryResource
+     * @param LockManagerInterface|null $lockManager
      * @return CategoryUpsert
      * @phpstan-param array<int, string> $roots
      */
     private function makeModel(
         CategoryProcessor $processor,
         array $roots = [2 => 'Default Category'],
-        ?CategoryResource $categoryResource = null
+        ?CategoryResource $categoryResource = null,
+        ?LockManagerInterface $lockManager = null
     ): CategoryUpsert {
         $this->readStoreIds = [];
+        $this->calls = [];
+
+        if ($lockManager === null) {
+            $lockManager = $this->createStub(LockManagerInterface::class);
+            $lockManager->method('lock')->willReturnCallback(function () {
+                $this->calls[] = 'lock';
+
+                return true;
+            });
+            $lockManager->method('unlock')->willReturnCallback(function () {
+                $this->calls[] = 'unlock';
+
+                return true;
+            });
+        }
+
+        $processorFactory = $this->createStub(CategoryProcessorFactory::class);
+        $processorFactory->method('create')->willReturnCallback(function () use ($processor) {
+            $this->calls[] = 'processor';
+
+            return $processor;
+        });
 
         $repository = $this->createStub(CategoryRepositoryInterface::class);
         $repository->method('get')->willReturnCallback(function ($categoryId, $storeId = null) use ($roots) {
@@ -71,10 +105,11 @@ class CategoryUpsertTest extends TestCase
 
         return new CategoryUpsert(
             new CategoryPathParser(),
-            $processor,
+            $processorFactory,
             $repository,
             new CategoryPathIdFactory($objectManager),
-            $categoryResource ?? $this->createStub(CategoryResource::class)
+            $categoryResource ?? $this->createStub(CategoryResource::class),
+            $lockManager
         );
     }
 
@@ -260,5 +295,69 @@ class CategoryUpsertTest extends TestCase
         $this->expectException(\TypeError::class);
 
         $this->makeModel($processor, [2 => 'Default Category'], $categoryResource)->upsert(['Men']);
+    }
+
+    public function testTheProcessorIsBuiltUnderTheLockAndTheLockIsReleased(): void
+    {
+        $processor = $this->createStub(CategoryProcessor::class);
+        $processor->method('upsertCategories')->willReturn([7]);
+        $processor->method('getFailedCategories')->willReturn([]);
+
+        $this->makeModel($processor)->upsert(['Men']);
+
+        // the processor loads the whole tree when it is built, so it must be
+        // built after the lock is held or it misses a concurrent call's rows
+        self::assertSame(['lock', 'processor', 'unlock'], $this->calls);
+    }
+
+    public function testTheLockIsReleasedWhenTheUpsertFails(): void
+    {
+        $processor = $this->createStub(CategoryProcessor::class);
+        $processor->method('upsertCategories')->willThrowException(new \TypeError('boom'));
+
+        try {
+            $this->makeModel($processor)->upsert(['Men']);
+            self::fail('a TypeError was expected');
+        } catch (\TypeError $error) {
+            self::assertSame(['lock', 'processor', 'unlock'], $this->calls);
+        }
+    }
+
+    public function testTheLockIsNamedAndBounded(): void
+    {
+        $processor = $this->createStub(CategoryProcessor::class);
+        $processor->method('upsertCategories')->willReturn([7]);
+        $processor->method('getFailedCategories')->willReturn([]);
+
+        $lockManager = $this->createMock(LockManagerInterface::class);
+        $lockManager->expects($this->once())
+            ->method('lock')
+            ->with(CategoryUpsert::LOCK_NAME, CategoryUpsert::LOCK_TIMEOUT)
+            ->willReturn(true);
+        $lockManager->expects($this->once())->method('unlock')->with(CategoryUpsert::LOCK_NAME)->willReturn(true);
+
+        $this->makeModel($processor, [2 => 'Default Category'], null, $lockManager)->upsert(['Men']);
+
+        self::assertSame('dagster_bridge_category_upsert', CategoryUpsert::LOCK_NAME);
+        self::assertGreaterThan(0, CategoryUpsert::LOCK_TIMEOUT);
+        self::assertLessThanOrEqual(30, CategoryUpsert::LOCK_TIMEOUT);
+    }
+
+    public function testALockTimeoutAnswersServiceUnavailable(): void
+    {
+        $processor = $this->createMock(CategoryProcessor::class);
+        $processor->expects($this->never())->method('upsertCategories');
+
+        $lockManager = $this->createMock(LockManagerInterface::class);
+        $lockManager->expects($this->once())->method('lock')->willReturn(false);
+        $lockManager->expects($this->never())->method('unlock');
+
+        try {
+            $this->makeModel($processor, [2 => 'Default Category'], null, $lockManager)->upsert(['Men']);
+            self::fail('a web API exception was expected');
+        } catch (WebapiException $exception) {
+            self::assertSame(503, $exception->getHttpCode());
+            self::assertStringContainsString('retry', $exception->getMessage());
+        }
     }
 }
