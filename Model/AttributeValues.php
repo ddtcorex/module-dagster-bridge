@@ -18,6 +18,7 @@ use Magento\Eav\Api\Data\AttributeInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\InputException;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Store\Api\StoreRepositoryInterface;
 
 /**
  * Reads store scoped attribute values for many products at once.
@@ -53,21 +54,31 @@ class AttributeValues implements AttributeValuesInterface
     private $itemFactory;
 
     /**
+     * Source of the stores a caller may ask for.
+     *
+     * @var StoreRepositoryInterface
+     */
+    private $storeRepository;
+
+    /**
      * @param ResourceConnection $resource
      * @param AttributeValuesQuery $query
      * @param AttributeRepositoryInterface $attributeRepository
      * @param AttributeValueItemFactory $itemFactory
+     * @param StoreRepositoryInterface $storeRepository
      */
     public function __construct(
         ResourceConnection $resource,
         AttributeValuesQuery $query,
         AttributeRepositoryInterface $attributeRepository,
-        AttributeValueItemFactory $itemFactory
+        AttributeValueItemFactory $itemFactory,
+        StoreRepositoryInterface $storeRepository
     ) {
         $this->resource = $resource;
         $this->query = $query;
         $this->attributeRepository = $attributeRepository;
         $this->itemFactory = $itemFactory;
+        $this->storeRepository = $storeRepository;
     }
 
     /**
@@ -89,6 +100,12 @@ class AttributeValues implements AttributeValuesInterface
         $skus = array_values(array_unique($skus));
         $attributeCodes = array_values(array_unique($attributeCodes));
 
+        if ($skus === []) {
+            throw new InputException(__('At least one SKU is required.'));
+        }
+        if ($attributeCodes === []) {
+            throw new InputException(__('At least one attribute code is required.'));
+        }
         if (count($skus) > self::MAX_SKUS) {
             throw new InputException(
                 __('At most %1 SKUs can be requested in one call, %2 given.', self::MAX_SKUS, count($skus))
@@ -104,6 +121,7 @@ class AttributeValues implements AttributeValuesInterface
             );
         }
 
+        $this->assertStoreExists($storeId);
         $attributes = $this->resolveAttributes($attributeCodes);
 
         $codeById = [];
@@ -115,10 +133,13 @@ class AttributeValues implements AttributeValuesInterface
             }
         }
 
+        // the database matches SKUs case-insensitively and answers in its own
+        // spelling, so values are keyed by the lowercased SKU and every item
+        // is answered under the spelling the caller asked for
         $values = [];
         foreach ($skus as $sku) {
             foreach ($attributeCodes as $code) {
-                $values[$sku][$code] = [null, null];
+                $values[$this->skuKey($sku)][$code] = [null, null];
             }
         }
 
@@ -129,7 +150,7 @@ class AttributeValues implements AttributeValuesInterface
 
             if ($backendType === AttributeValuesQuery::STATIC_BACKEND_TYPE) {
                 foreach ($rows as $row) {
-                    $sku = (string) $row[AttributeValueItemInterface::SKU];
+                    $sku = $this->skuKey((string) $row[AttributeValueItemInterface::SKU]);
                     foreach (array_keys($staticCodes) as $code) {
                         $values[$sku][$code][1] = $this->stringOrNull($row[$code] ?? null);
                     }
@@ -138,7 +159,7 @@ class AttributeValues implements AttributeValuesInterface
             }
 
             foreach ($rows as $row) {
-                $sku = (string) $row[AttributeValueItemInterface::SKU];
+                $sku = $this->skuKey((string) $row[AttributeValueItemInterface::SKU]);
                 $code = $codeById[(int) $row['attribute_id']] ?? null;
                 if ($code === null) {
                     continue;
@@ -161,8 +182,8 @@ class AttributeValues implements AttributeValuesInterface
                 $item = $this->itemFactory->create();
                 $item->setSku($sku);
                 $item->setAttributeCode($code);
-                $item->setStoreValue($values[$sku][$code][0]);
-                $item->setDefaultValue($values[$sku][$code][1]);
+                $item->setStoreValue($values[$this->skuKey($sku)][$code][0]);
+                $item->setDefaultValue($values[$this->skuKey($sku)][$code][1]);
                 $items[] = $item;
             }
         }
@@ -171,7 +192,23 @@ class AttributeValues implements AttributeValuesInterface
     }
 
     /**
-     * Resolves every requested code, naming all unknown ones at once.
+     * Rejects a store id that names no store, instead of answering defaults.
+     *
+     * @param int $storeId
+     * @return void
+     * @throws InputException
+     */
+    private function assertStoreExists(int $storeId): void
+    {
+        try {
+            $this->storeRepository->getById($storeId);
+        } catch (NoSuchEntityException $exception) {
+            throw new InputException(__('Store %1 does not exist.', $storeId), $exception);
+        }
+    }
+
+    /**
+     * Resolves every requested code, naming all unknown or unreadable ones at once.
      *
      * @param string[] $attributeCodes
      * @return AttributeInterface[] Keyed by attribute code.
@@ -196,7 +233,29 @@ class AttributeValues implements AttributeValuesInterface
             throw new InputException(__('Unknown attribute codes: %1.', implode(', ', $unknown)));
         }
 
+        $unsupported = $this->query->unsupportedCodes($attributes);
+        if ($unsupported !== []) {
+            throw new InputException(
+                __(
+                    'Attribute codes this endpoint cannot read: %1. A static attribute must be a column of the '
+                    . 'product table, any other one must keep scalar values in a standard EAV value table.',
+                    implode(', ', $unsupported)
+                )
+            );
+        }
+
         return $attributes;
+    }
+
+    /**
+     * Key a SKU is looked up under, whatever its case.
+     *
+     * @param string $sku
+     * @return string
+     */
+    private function skuKey(string $sku): string
+    {
+        return mb_strtolower($sku);
     }
 
     /**

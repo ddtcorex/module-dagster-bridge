@@ -54,4 +54,14 @@ class CategoryPathParserTest extends TestCase
             $this->parser->parse(' Default Category // Men / Tops ', 'Default Category', '/')
         );
     }
+
+    public function testParseRecognisesTheRootCaseInsensitivelyAsTheNativeProcessorDoes(): void
+    {
+        // the native processor matches names case-insensitively, so a path
+        // that starts with the root in another case already starts with it
+        self::assertSame(
+            ['default category', 'Men'],
+            $this->parser->parse('default category/Men', 'Default Category', '/')
+        );
+    }
 }

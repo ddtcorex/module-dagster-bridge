@@ -20,7 +20,8 @@ class CategoryPathParser
      *
      * A path that does not start with the root gets the root prepended, and
      * empty levels are dropped, so both "Men/Tops" and "Default Category/Men"
-     * describe the same branch.
+     * describe the same branch. The root is recognised case-insensitively, as
+     * the native category processor compares every name.
      *
      * @param string $path
      * @param string $root
@@ -37,8 +38,8 @@ class CategoryPathParser
             }
         }
 
-        if ($levels === [] || $levels[0] !== $root) {
-            array_unshift($levels, $root);
+        if ($levels === [] || mb_strtolower($levels[0]) !== mb_strtolower(trim($root))) {
+            array_unshift($levels, trim($root));
         }
 
         return $levels;

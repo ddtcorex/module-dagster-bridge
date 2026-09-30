@@ -76,9 +76,13 @@ class ProductIndexQuery
     /**
      * Builds one page of the index.
      *
-     * The status value is joined through the product link field, which is
-     * entity_id on Open Source and row_id on Commerce with staging, and only
-     * for store 0: the store scoped status is not what the index reports.
+     * The status value is joined through the product link field the metadata
+     * pool reports, which is entity_id on Open Source, and only for store 0:
+     * the store scoped status is not what the index reports.
+     *
+     * Commerce content staging is not supported: there the link field is
+     * row_id and a product has one row per staged version, so this query
+     * would return one index row per version, not one per product.
      *
      * @param int $after
      * @param int $limit

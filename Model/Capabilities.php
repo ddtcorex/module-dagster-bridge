@@ -11,12 +11,6 @@ namespace DDTCoreX\DagsterBridge\Model;
 use DDTCoreX\DagsterBridge\Api\CapabilitiesInterface;
 use DDTCoreX\DagsterBridge\Api\Data\CapabilitiesResultInterface;
 use DDTCoreX\DagsterBridge\Model\Data\CapabilitiesResultFactory;
-use InvalidArgumentException;
-use Magento\Framework\Component\ComponentRegistrar;
-use Magento\Framework\Component\ComponentRegistrarInterface;
-use Magento\Framework\Exception\FileSystemException;
-use Magento\Framework\Filesystem\Driver\File;
-use Magento\Framework\Serialize\Serializer\Json;
 
 /**
  * Answers what this module can do.
@@ -33,6 +27,15 @@ class Capabilities implements CapabilitiesInterface
     public const MODULE_NAME = 'DDTCoreX_DagsterBridge';
 
     /**
+     * Version of this release.
+     *
+     * It is the top release heading of CHANGELOG.md, which a unit test
+     * enforces, and the tag the release is cut from. composer.json carries no
+     * version field, because Composer ignores a VCS tag that disagrees with it.
+     */
+    public const VERSION = '1.0.0';
+
+    /**
      * Capabilities this release exposes, one entry per finished endpoint.
      */
     private const CAPABILITIES = ['products.index', 'products.attribute_values', 'categories.upsert'];
@@ -45,42 +48,11 @@ class Capabilities implements CapabilitiesInterface
     private $resultFactory;
 
     /**
-     * Resolves the module directory, wherever the module is installed.
-     *
-     * @var ComponentRegistrarInterface
-     */
-    private $componentRegistrar;
-
-    /**
-     * JSON serializer.
-     *
-     * @var Json
-     */
-    private $json;
-
-    /**
-     * Filesystem driver used to read the module's own composer.json.
-     *
-     * @var File
-     */
-    private $fileDriver;
-
-    /**
      * @param CapabilitiesResultFactory $resultFactory
-     * @param ComponentRegistrarInterface $componentRegistrar
-     * @param Json $json
-     * @param File $fileDriver
      */
-    public function __construct(
-        CapabilitiesResultFactory $resultFactory,
-        ComponentRegistrarInterface $componentRegistrar,
-        Json $json,
-        File $fileDriver
-    ) {
+    public function __construct(CapabilitiesResultFactory $resultFactory)
+    {
         $this->resultFactory = $resultFactory;
-        $this->componentRegistrar = $componentRegistrar;
-        $this->json = $json;
-        $this->fileDriver = $fileDriver;
     }
 
     /**
@@ -91,45 +63,9 @@ class Capabilities implements CapabilitiesInterface
     public function get(): CapabilitiesResultInterface
     {
         $result = $this->resultFactory->create();
-        $result->setVersion($this->readVersion());
+        $result->setVersion(self::VERSION);
         $result->setCapabilities(self::CAPABILITIES);
 
         return $result;
-    }
-
-    /**
-     * Reads the version from this module's own composer.json.
-     *
-     * Works whether the module sits in app/code or was installed as a
-     * composer package, because the registrar knows both. An unreadable or
-     * malformed file answers an empty version instead of failing the call.
-     *
-     * @return string
-     */
-    private function readVersion(): string
-    {
-        $moduleDir = $this->componentRegistrar->getPath(ComponentRegistrar::MODULE, self::MODULE_NAME);
-        if ($moduleDir === null) {
-            return '';
-        }
-
-        $composerJson = $moduleDir . '/composer.json';
-        if (!$this->fileDriver->isExists($composerJson)) {
-            return '';
-        }
-
-        try {
-            $contents = $this->fileDriver->fileGetContents($composerJson);
-        } catch (FileSystemException $exception) {
-            return '';
-        }
-
-        try {
-            $data = $this->json->unserialize($contents);
-        } catch (InvalidArgumentException $exception) {
-            return '';
-        }
-
-        return is_array($data) && isset($data['version']) ? (string) $data['version'] : '';
     }
 }

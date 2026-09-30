@@ -11,106 +11,54 @@ namespace DDTCoreX\DagsterBridge\Test\Unit\Model;
 use DDTCoreX\DagsterBridge\Model\Capabilities;
 use DDTCoreX\DagsterBridge\Model\Data\CapabilitiesResult;
 use DDTCoreX\DagsterBridge\Model\Data\CapabilitiesResultFactory;
-use Magento\Framework\Component\ComponentRegistrar;
-use Magento\Framework\Component\ComponentRegistrarInterface;
-use Magento\Framework\Filesystem\Driver\File;
-use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\TestCase;
 
 class CapabilitiesTest extends TestCase
 {
     /**
-     * Temporary module directory the tests write a composer.json into.
+     * Builds the model over a factory that hands back a real result.
      *
-     * @var string
-     */
-    private $moduleDir;
-
-    protected function setUp(): void
-    {
-        $this->moduleDir = sys_get_temp_dir() . '/dagster-bridge-' . uniqid('', true);
-        mkdir($this->moduleDir);
-    }
-
-    protected function tearDown(): void
-    {
-        $composerJson = $this->moduleDir . '/composer.json';
-        if (is_file($composerJson)) {
-            unlink($composerJson);
-        }
-        if (is_dir($this->moduleDir)) {
-            rmdir($this->moduleDir);
-        }
-    }
-
-    /**
-     * Writes the module's own composer.json.
-     *
-     * @param string $composerJson
-     * @return void
-     */
-    private function writeComposerJson(string $composerJson): void
-    {
-        file_put_contents($this->moduleDir . '/composer.json', $composerJson);
-    }
-
-    /**
-     * Builds the model with a mocked registrar and a real filesystem driver.
-     *
-     * @param string|null $moduleDir
      * @return Capabilities
      */
-    private function makeModel(?string $moduleDir): Capabilities
+    private function makeModel(): Capabilities
     {
-        $registrar = $this->createMock(ComponentRegistrarInterface::class);
-        $registrar->expects($this->once())
-            ->method('getPath')
-            ->with(ComponentRegistrar::MODULE, Capabilities::MODULE_NAME)
-            ->willReturn($moduleDir);
-
         $factory = $this->createMock(CapabilitiesResultFactory::class);
         $factory->expects($this->once())
             ->method('create')
             ->willReturn(new CapabilitiesResult());
 
-        return new Capabilities($factory, $registrar, new Json(), new File());
+        return new Capabilities($factory);
     }
 
-    public function testReturnsVersionFromComposerJsonAndTheReleasedCapabilities(): void
+    public function testReturnsTheModuleVersionAndTheReleasedCapabilities(): void
     {
-        $this->writeComposerJson((string) json_encode([
-            'name' => 'ddtcorex/module-dagster-bridge',
-            'version' => '1.2.3',
-        ]));
+        $result = $this->makeModel()->get();
 
-        $result = $this->makeModel($this->moduleDir)->get();
-
-        self::assertSame('1.2.3', $result->getVersion());
+        self::assertSame(Capabilities::VERSION, $result->getVersion());
         self::assertSame(
             ['products.index', 'products.attribute_values', 'categories.upsert'],
             $result->getCapabilities()
         );
     }
 
-    public function testVersionIsEmptyWhenTheModuleIsNotRegistered(): void
+    public function testVersionIsTheTopReleaseHeadingOfTheChangelog(): void
     {
-        $this->writeComposerJson((string) json_encode(['version' => '1.2.3']));
+        // the release checklist bumps both together; this test fails the
+        // build when one of them is forgotten
+        $changelog = (string) file_get_contents(__DIR__ . '/../../../CHANGELOG.md');
+        self::assertSame(1, preg_match('/^## \[(\d+\.\d+\.\d+)\]/m', $changelog, $match));
 
-        self::assertSame('', $this->makeModel(null)->get()->getVersion());
+        self::assertSame($match[1], Capabilities::VERSION);
     }
 
-    public function testVersionIsEmptyWhenComposerJsonHasNoVersion(): void
+    public function testComposerJsonCarriesNoVersionField(): void
     {
-        $this->writeComposerJson((string) json_encode(['name' => 'ddtcorex/module-dagster-bridge']));
+        // Composer skips a VCS tag whose version disagrees with this field,
+        // so the version lives in the tag and in Capabilities::VERSION only
+        $composer = json_decode((string) file_get_contents(__DIR__ . '/../../../composer.json'), true);
 
-        self::assertSame('', $this->makeModel($this->moduleDir)->get()->getVersion());
-    }
-
-    public function testVersionIsEmptyWhenComposerJsonIsBroken(): void
-    {
-        file_put_contents($this->moduleDir . '/composer.json', '{"version": ');
-
-        self::assertSame('', $this->makeModel($this->moduleDir)->get()->getVersion());
+        self::assertIsArray($composer);
+        self::assertArrayNotHasKey('version', $composer);
     }
 
     public function testResultCarriesTheKeysTheEndpointPublishes(): void

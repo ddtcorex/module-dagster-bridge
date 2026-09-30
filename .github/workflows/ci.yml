@@ -43,3 +43,31 @@ jobs:
 
       - name: Unit tests
         run: vendor/bin/phpunit -c Test/Unit/phpunit.xml.dist
+
+  lowest:
+    name: php 8.1, lowest dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: composer:v2
+
+      # exercises the lower bound of every constraint: Magento 2.4.6
+      # components (framework 103.0.6) on the oldest supported PHP
+      - name: Install lowest dependencies
+        run: composer update --prefer-lowest --prefer-stable --no-interaction --prefer-dist --no-progress
+
+      - name: Coding standard
+        run: vendor/bin/phpcs
+
+      - name: Static analysis
+        run: vendor/bin/phpstan analyse --no-progress
+
+      - name: Unit tests
+        run: vendor/bin/phpunit -c Test/Unit/phpunit.xml.dist
