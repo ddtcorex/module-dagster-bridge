@@ -130,7 +130,14 @@ it. CI also runs the whole gate with `--prefer-lowest` on PHP 8.1, which
 installs the Magento 2.4.6 components (`magento/framework` 103.0.6).
 
 The unit tests need no Magento installation: they cover the SQL builders and
-the path parser, and mock everything that would touch the application.
+the path parser, and mock everything that would touch the application. Most
+SQL builder tests use a quote double that pastes values in unescaped, so they
+pin the shape of a query, not its safety. Injection safety rests on two
+things: every caller value reaches SQL through the adapter's `quoteInto`
+(bound `?` placeholders), and every identifier is a table or column name the
+module resolves itself (attribute metadata, the metadata pool, the checked
+product columns), never caller text. One test binds hostile SKUs through a
+double that escapes like MySQL string literals to pin the first half.
 
 ## License
 

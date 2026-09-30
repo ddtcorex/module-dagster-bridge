@@ -285,4 +285,58 @@ class AttributeValuesQueryTest extends TestCase
         $where = str_replace('`', '', (string) json_encode($selects['varchar']->getPart(Select::WHERE)));
         self::assertStringContainsString('v.attribute_id IN (71,72)', $where);
     }
+
+    public function testCallerValuesAreBoundThroughTheAdapterQuoting(): void
+    {
+        // the other tests use a quote double that pastes values in raw, so
+        // they prove the shape of the query only; this one escapes the way
+        // MySQL string literals are escaped and checks a hostile SKU stays
+        // inside its literal
+        $adapter = $this->createStub(Mysql::class);
+        $adapter->method('quoteIdentifier')->willReturnCallback(
+            static function ($identifier, $auto = false) {
+                return '`' . str_replace('`', '``', (string) $identifier) . '`';
+            }
+        );
+        $quote = static function ($value): string {
+            return is_int($value) ? (string) $value : "'" . addcslashes((string) $value, "\000\n\r\\'\"\032") . "'";
+        };
+        $adapter->method('quoteInto')->willReturnCallback(
+            static function ($text, $value, $type = null) use ($quote) {
+                $quoted = is_array($value) ? implode(', ', array_map($quote, $value)) : $quote($value);
+
+                return str_replace('?', $quoted, $text);
+            }
+        );
+
+        $metadata = $this->createStub(EntityMetadataInterface::class);
+        $metadata->method('getLinkField')->willReturn('entity_id');
+        $metadataPool = $this->createStub(MetadataPool::class);
+        $metadataPool->method('getMetadata')->willReturn($metadata);
+
+        $resource = $this->createStub(ResourceConnection::class);
+        $resource->method('getConnection')->willReturn($adapter);
+        $resource->method('getTableName')->willReturnArgument(0);
+
+        $selectRenderer = $this->createStub(SelectRenderer::class);
+        $selectFactory = $this->createStub(SelectFactory::class);
+        $selectFactory->method('create')->willReturnCallback(
+            static function () use ($adapter, $selectRenderer) {
+                return new Select($adapter, $selectRenderer);
+            }
+        );
+
+        $hostile = "x') OR 1=1 -- ";
+        $selects = (new AttributeValuesQuery($resource, $selectFactory, $metadataPool))->build(
+            [$hostile, "o'brien"],
+            ['name' => $this->attribute('name', 71, 'varchar')],
+            5
+        );
+
+        $where = implode(' ', $selects['varchar']->getPart(Select::WHERE));
+        self::assertStringContainsString("e.sku IN ('x\\') OR 1=1 -- ', 'o\\'brien')", $where);
+        self::assertStringNotContainsString("'x') OR", $where);
+        self::assertStringContainsString('v.attribute_id IN (71)', $where);
+        self::assertStringContainsString('v.store_id IN (0, 5)', $where);
+    }
 }

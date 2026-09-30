@@ -58,3 +58,4 @@ Magento 2.4.9 store.
   2.4.6 on, plus `magento/module-eav`; the version is
   `Capabilities::VERSION`.
 - README install instructions match what resolves today.
+- A unit test pins value binding through an escaping quote double.
