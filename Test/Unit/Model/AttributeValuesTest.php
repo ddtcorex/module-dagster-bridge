@@ -224,4 +224,30 @@ class AttributeValuesTest extends TestCase
             ['category_ids', 'tier_price']
         )->get(['sku-1'], ['category_ids', 'tier_price']);
     }
+
+    public function testASkuSpelledInAnotherCaseAnswersUnderTheRequestedSpelling(): void
+    {
+        // MySQL matches sku IN ('abc-1') against ABC-1, the row comes back in
+        // the database spelling and must still land on the requested item
+        $items = $this->makeModel(
+            [$this->row(71, 0, 'Default name', 'ABC-1')],
+            ['name' => $this->attribute('name', 71, 'varchar')]
+        )->get(['abc-1'], ['name'], 0);
+
+        self::assertCount(1, $items);
+        self::assertSame('abc-1', $items[0]->getSku());
+        self::assertSame('Default name', $items[0]->getDefaultValue());
+        self::assertSame('Default name', $items[0]->getStoreValue());
+    }
+
+    public function testAStaticValueIsFoundForASkuSpelledInAnotherCase(): void
+    {
+        $items = $this->makeModel(
+            [['sku' => 'ABC-1', 'created_at' => '2026-01-01 00:00:00']],
+            ['created_at' => $this->attribute('created_at', 99, 'static')]
+        )->get(['Abc-1'], ['created_at'], 0);
+
+        self::assertSame('Abc-1', $items[0]->getSku());
+        self::assertSame('2026-01-01 00:00:00', $items[0]->getDefaultValue());
+    }
 }

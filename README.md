@@ -37,6 +37,9 @@ table (`catalog_product_entity_{int,decimal,varchar,text,datetime}`). A code
 that fits neither, such as `category_ids` and `media_gallery` (static but no
 column) or `tier_price` (its values live in a price table of their own),
 answers 400 naming every such code, as an unknown code does.
+SKUs match case-insensitively, as the database collation does, and every
+item answers under the SKU spelling the caller sent; ask for the `sku` code to
+read the stored spelling.
 
 A null value is absent from the JSON, because Magento's serializer drops null
 keys: a client reads `store_value` and `default_value` as missing rather than

@@ -115,10 +115,13 @@ class AttributeValues implements AttributeValuesInterface
             }
         }
 
+        // the database matches SKUs case-insensitively and answers in its own
+        // spelling, so values are keyed by the lowercased SKU and every item
+        // is answered under the spelling the caller asked for
         $values = [];
         foreach ($skus as $sku) {
             foreach ($attributeCodes as $code) {
-                $values[$sku][$code] = [null, null];
+                $values[$this->skuKey($sku)][$code] = [null, null];
             }
         }
 
@@ -129,7 +132,7 @@ class AttributeValues implements AttributeValuesInterface
 
             if ($backendType === AttributeValuesQuery::STATIC_BACKEND_TYPE) {
                 foreach ($rows as $row) {
-                    $sku = (string) $row[AttributeValueItemInterface::SKU];
+                    $sku = $this->skuKey((string) $row[AttributeValueItemInterface::SKU]);
                     foreach (array_keys($staticCodes) as $code) {
                         $values[$sku][$code][1] = $this->stringOrNull($row[$code] ?? null);
                     }
@@ -138,7 +141,7 @@ class AttributeValues implements AttributeValuesInterface
             }
 
             foreach ($rows as $row) {
-                $sku = (string) $row[AttributeValueItemInterface::SKU];
+                $sku = $this->skuKey((string) $row[AttributeValueItemInterface::SKU]);
                 $code = $codeById[(int) $row['attribute_id']] ?? null;
                 if ($code === null) {
                     continue;
@@ -161,8 +164,8 @@ class AttributeValues implements AttributeValuesInterface
                 $item = $this->itemFactory->create();
                 $item->setSku($sku);
                 $item->setAttributeCode($code);
-                $item->setStoreValue($values[$sku][$code][0]);
-                $item->setDefaultValue($values[$sku][$code][1]);
+                $item->setStoreValue($values[$this->skuKey($sku)][$code][0]);
+                $item->setDefaultValue($values[$this->skuKey($sku)][$code][1]);
                 $items[] = $item;
             }
         }
@@ -208,6 +211,17 @@ class AttributeValues implements AttributeValuesInterface
         }
 
         return $attributes;
+    }
+
+    /**
+     * Key a SKU is looked up under, whatever its case.
+     *
+     * @param string $sku
+     * @return string
+     */
+    private function skuKey(string $sku): string
+    {
+        return mb_strtolower($sku);
     }
 
     /**
