@@ -148,6 +148,9 @@ class CategoryUpsert implements CategoryUpsertInterface
         string $root = self::DEFAULT_ROOT,
         string $separator = '/'
     ): array {
+        if ($separator === '') {
+            throw new InputException(__('The separator must not be empty.'));
+        }
         if ($paths === []) {
             return [];
         }

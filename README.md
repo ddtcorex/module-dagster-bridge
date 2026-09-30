@@ -28,8 +28,8 @@ module degrades per feature instead of failing.
 | --- | --- | --- | --- |
 | `/V1/dagster-bridge/capabilities` | GET | `DDTCoreX_DagsterBridge::read` | Module version and the capabilities this release exposes |
 | `/V1/dagster-bridge/products/index` | GET | `DDTCoreX_DagsterBridge::read` | `entity_id`, `sku`, `type_id`, `attribute_set_id`, store 0 `status` and `updated_at` for every product, keyset paginated with `after` and `limit` (default 5000, max 20000) |
-| `/V1/dagster-bridge/products/attribute-values` | POST | `DDTCoreX_DagsterBridge::read` | Body `{skus, attribute_codes, store_id}`; one item per pair with `store_value` and `default_value` (at most 1000 SKUs and 50 codes per call) |
-| `/V1/dagster-bridge/categories/upsert` | POST | `DDTCoreX_DagsterBridge::write` | Body `{paths, root, separator}`; creates the missing categories and answers every requested path with its id, in one transaction |
+| `/V1/dagster-bridge/products/attribute-values` | POST | `DDTCoreX_DagsterBridge::read` | Body `{skus, attribute_codes, store_id}`; one item per pair with `store_value` and `default_value` (1 to 1000 SKUs and 1 to 50 codes per call, `store_id` must name an existing store) |
+| `/V1/dagster-bridge/categories/upsert` | POST | `DDTCoreX_DagsterBridge::write` | Body `{paths, root, separator}`; creates the missing categories and answers every requested path with its id, in one transaction (`separator` must not be empty) |
 
 `products/attribute-values` reads a static attribute from its column of
 `catalog_product_entity` and any other attribute from its standard EAV value

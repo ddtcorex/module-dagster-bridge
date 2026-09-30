@@ -360,4 +360,15 @@ class CategoryUpsertTest extends TestCase
             self::assertStringContainsString('retry', $exception->getMessage());
         }
     }
+
+    public function testAnEmptySeparatorIsRejected(): void
+    {
+        $processor = $this->createMock(CategoryProcessor::class);
+        $processor->expects($this->never())->method('upsertCategories');
+
+        $this->expectException(InputException::class);
+        $this->expectExceptionMessage('separator');
+
+        $this->makeModel($processor)->upsert(['Men'], 'Default Category', '');
+    }
 }

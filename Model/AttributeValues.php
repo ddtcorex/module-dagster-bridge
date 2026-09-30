@@ -18,6 +18,7 @@ use Magento\Eav\Api\Data\AttributeInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\InputException;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Store\Api\StoreRepositoryInterface;
 
 /**
  * Reads store scoped attribute values for many products at once.
@@ -53,21 +54,31 @@ class AttributeValues implements AttributeValuesInterface
     private $itemFactory;
 
     /**
+     * Source of the stores a caller may ask for.
+     *
+     * @var StoreRepositoryInterface
+     */
+    private $storeRepository;
+
+    /**
      * @param ResourceConnection $resource
      * @param AttributeValuesQuery $query
      * @param AttributeRepositoryInterface $attributeRepository
      * @param AttributeValueItemFactory $itemFactory
+     * @param StoreRepositoryInterface $storeRepository
      */
     public function __construct(
         ResourceConnection $resource,
         AttributeValuesQuery $query,
         AttributeRepositoryInterface $attributeRepository,
-        AttributeValueItemFactory $itemFactory
+        AttributeValueItemFactory $itemFactory,
+        StoreRepositoryInterface $storeRepository
     ) {
         $this->resource = $resource;
         $this->query = $query;
         $this->attributeRepository = $attributeRepository;
         $this->itemFactory = $itemFactory;
+        $this->storeRepository = $storeRepository;
     }
 
     /**
@@ -89,6 +100,12 @@ class AttributeValues implements AttributeValuesInterface
         $skus = array_values(array_unique($skus));
         $attributeCodes = array_values(array_unique($attributeCodes));
 
+        if ($skus === []) {
+            throw new InputException(__('At least one SKU is required.'));
+        }
+        if ($attributeCodes === []) {
+            throw new InputException(__('At least one attribute code is required.'));
+        }
         if (count($skus) > self::MAX_SKUS) {
             throw new InputException(
                 __('At most %1 SKUs can be requested in one call, %2 given.', self::MAX_SKUS, count($skus))
@@ -104,6 +121,7 @@ class AttributeValues implements AttributeValuesInterface
             );
         }
 
+        $this->assertStoreExists($storeId);
         $attributes = $this->resolveAttributes($attributeCodes);
 
         $codeById = [];
@@ -171,6 +189,22 @@ class AttributeValues implements AttributeValuesInterface
         }
 
         return $items;
+    }
+
+    /**
+     * Rejects a store id that names no store, instead of answering defaults.
+     *
+     * @param int $storeId
+     * @return void
+     * @throws InputException
+     */
+    private function assertStoreExists(int $storeId): void
+    {
+        try {
+            $this->storeRepository->getById($storeId);
+        } catch (NoSuchEntityException $exception) {
+            throw new InputException(__('Store %1 does not exist.', $storeId), $exception);
+        }
     }
 
     /**

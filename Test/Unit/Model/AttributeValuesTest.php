@@ -21,6 +21,8 @@ use Magento\Framework\DB\Select\SelectRenderer;
 use Magento\Framework\Exception\InputException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\ObjectManagerInterface;
+use Magento\Store\Api\Data\StoreInterface;
+use Magento\Store\Api\StoreRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
 class AttributeValuesTest extends TestCase
@@ -88,11 +90,21 @@ class AttributeValuesTest extends TestCase
             }
         );
 
+        $storeRepository = $this->createStub(StoreRepositoryInterface::class);
+        $storeRepository->method('getById')->willReturnCallback(function ($storeId) {
+            if (!in_array((int) $storeId, [0, 1, 5], true)) {
+                throw new NoSuchEntityException(__('The store that was requested wasn\'t found.'));
+            }
+
+            return $this->createStub(StoreInterface::class);
+        });
+
         return new AttributeValues(
             $resource,
             $query,
             $repository,
-            new AttributeValueItemFactory($objectManager)
+            new AttributeValueItemFactory($objectManager),
+            $storeRepository
         );
     }
 
@@ -249,5 +261,29 @@ class AttributeValuesTest extends TestCase
 
         self::assertSame('Abc-1', $items[0]->getSku());
         self::assertSame('2026-01-01 00:00:00', $items[0]->getDefaultValue());
+    }
+
+    public function testEmptySkusAreRejected(): void
+    {
+        $this->expectException(InputException::class);
+        $this->expectExceptionMessage('At least one SKU');
+
+        $this->makeModel([], ['name' => $this->attribute('name', 71, 'varchar')])->get([], ['name']);
+    }
+
+    public function testEmptyAttributeCodesAreRejected(): void
+    {
+        $this->expectException(InputException::class);
+        $this->expectExceptionMessage('At least one attribute code');
+
+        $this->makeModel([], [])->get(['sku-1'], []);
+    }
+
+    public function testAStoreThatDoesNotExistIsRejected(): void
+    {
+        $this->expectException(InputException::class);
+        $this->expectExceptionMessage('Store 999 does not exist.');
+
+        $this->makeModel([], ['name' => $this->attribute('name', 71, 'varchar')])->get(['sku-1'], ['name'], 999);
     }
 }
