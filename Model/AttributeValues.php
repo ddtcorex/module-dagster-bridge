@@ -171,7 +171,7 @@ class AttributeValues implements AttributeValuesInterface
     }
 
     /**
-     * Resolves every requested code, naming all unknown ones at once.
+     * Resolves every requested code, naming all unknown or unreadable ones at once.
      *
      * @param string[] $attributeCodes
      * @return AttributeInterface[] Keyed by attribute code.
@@ -194,6 +194,17 @@ class AttributeValues implements AttributeValuesInterface
 
         if ($unknown !== []) {
             throw new InputException(__('Unknown attribute codes: %1.', implode(', ', $unknown)));
+        }
+
+        $unsupported = $this->query->unsupportedCodes($attributes);
+        if ($unsupported !== []) {
+            throw new InputException(
+                __(
+                    'Attribute codes this endpoint cannot read: %1. A static attribute must be a column of the '
+                    . 'product table, any other one must keep scalar values in a standard EAV value table.',
+                    implode(', ', $unsupported)
+                )
+            );
         }
 
         return $attributes;

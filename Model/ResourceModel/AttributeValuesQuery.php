@@ -10,6 +10,7 @@ namespace DDTCoreX\DagsterBridge\Model\ResourceModel;
 
 use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Eav\Api\Data\AttributeInterface;
+use Magento\Eav\Model\Entity\Attribute\AbstractAttribute;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\DB\Select;
@@ -32,6 +33,11 @@ class AttributeValuesQuery
     private const PRODUCT_TABLE = 'catalog_product_entity';
     private const VALUE_TABLE_PREFIX = 'catalog_product_entity_';
     private const COLUMN_SKU = 'sku';
+
+    /**
+     * Backend types whose values live in a standard EAV value table.
+     */
+    private const VALUE_BACKEND_TYPES = ['datetime', 'decimal', 'int', 'text', 'varchar'];
 
     /**
      * Connection and table names.
@@ -70,11 +76,64 @@ class AttributeValuesQuery
     }
 
     /**
+     * Returns the codes this query cannot read, in request order.
+     *
+     * A static attribute is readable only when it is a column of the product
+     * table: category_ids, for one, is static but lives elsewhere. Any other
+     * attribute is readable only when its values are scalar rows of one of the
+     * standard value tables: an attribute whose backend table is a table of its
+     * own, or whose backend is not scalar (tier_price keeps its rows in a price
+     * table while its declared table is the decimal one), is refused instead of
+     * answering null for every product.
+     *
+     * @param AttributeInterface[] $attributes Keyed by attribute code.
+     * @return string[]
+     */
+    public function unsupportedCodes(array $attributes): array
+    {
+        $productColumns = null;
+        $standardTables = [];
+        foreach (self::VALUE_BACKEND_TYPES as $backendType) {
+            $standardTables[] = $this->resource->getTableName(self::VALUE_TABLE_PREFIX . $backendType);
+        }
+
+        $unsupported = [];
+        foreach ($attributes as $code => $attribute) {
+            $code = (string) $code;
+            $backendType = (string) $attribute->getBackendType();
+
+            if ($backendType === self::STATIC_BACKEND_TYPE) {
+                if ($productColumns === null) {
+                    $productColumns = array_keys(
+                        $this->resource->getConnection()->describeTable(
+                            $this->resource->getTableName(self::PRODUCT_TABLE)
+                        )
+                    );
+                }
+                if (!in_array($code, $productColumns, true)) {
+                    $unsupported[] = $code;
+                }
+                continue;
+            }
+
+            if (!in_array($backendType, self::VALUE_BACKEND_TYPES, true)
+                || !in_array($this->valueTable($attribute), $standardTables, true)
+                || !$this->hasScalarBackend($attribute)
+            ) {
+                $unsupported[] = $code;
+            }
+        }
+
+        return $unsupported;
+    }
+
+    /**
      * Builds the queries that answer one request.
      *
      * Attributes sharing a backend type share a query, because their values
      * live in the same table. Static attributes come from the product row
-     * itself and are read in a single query over that table.
+     * itself and are read in a single query over that table. The caller
+     * rejects the codes unsupportedCodes() names before it builds anything.
      *
      * @param string[] $skus
      * @param AttributeInterface[] $attributes Keyed by attribute code.
@@ -96,10 +155,39 @@ class AttributeValuesQuery
         foreach ($byBackendType as $backendType => $group) {
             $selects[$backendType] = $backendType === self::STATIC_BACKEND_TYPE
                 ? $this->buildStaticSelect($skus, $group, $connection)
-                : $this->buildValueSelect($backendType, $skus, $group, $storeIds, $linkField, $connection);
+                : $this->buildValueSelect($skus, $group, $storeIds, $linkField, $connection);
         }
 
         return $selects;
+    }
+
+    /**
+     * Resolves the table an attribute's values live in.
+     *
+     * An EAV attribute knows its own table, which honours a declared backend
+     * table; anything else falls back to the prefix and backend type.
+     *
+     * @param AttributeInterface $attribute
+     * @return string
+     */
+    private function valueTable(AttributeInterface $attribute): string
+    {
+        if ($attribute instanceof AbstractAttribute) {
+            return (string) $attribute->getBackendTable();
+        }
+
+        return $this->resource->getTableName(self::VALUE_TABLE_PREFIX . $attribute->getBackendType());
+    }
+
+    /**
+     * Tells whether the attribute's backend stores plain scalar value rows.
+     *
+     * @param AttributeInterface $attribute
+     * @return bool
+     */
+    private function hasScalarBackend(AttributeInterface $attribute): bool
+    {
+        return !$attribute instanceof AbstractAttribute || $attribute->getBackend()->isScalar();
     }
 
     /**
@@ -109,7 +197,6 @@ class AttributeValuesQuery
      * entity_id, and each row carries its own store so the caller can tell the
      * store value from the default one.
      *
-     * @param string $backendType
      * @param string[] $skus
      * @param AttributeInterface[] $group
      * @param int[] $storeIds
@@ -118,7 +205,6 @@ class AttributeValuesQuery
      * @return Select
      */
     private function buildValueSelect(
-        string $backendType,
         array $skus,
         array $group,
         array $storeIds,
@@ -129,13 +215,16 @@ class AttributeValuesQuery
         foreach ($group as $attribute) {
             $attributeIds[] = (int) $attribute->getAttributeId();
         }
+        // every attribute of the group shares its backend type, and
+        // unsupportedCodes() refused any whose table is not the standard one
+        $valueTable = $this->valueTable(reset($group));
 
         $condition = $connection->quoteIdentifier('e.' . $linkField)
             . ' = ' . $connection->quoteIdentifier('v.' . $linkField);
 
         return $this->selectFactory->create($connection)
             ->from(
-                ['v' => $this->resource->getTableName(self::VALUE_TABLE_PREFIX . $backendType)],
+                ['v' => $valueTable],
                 [
                     'attribute_id' => 'v.attribute_id',
                     'store_id' => 'v.store_id',

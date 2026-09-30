@@ -48,11 +48,12 @@ class AttributeValuesTest extends TestCase
      *
      * @param array $rows
      * @param array $attributes
+     * @param string[] $unsupported Codes the query builder cannot read.
      * @return AttributeValues
      * @phpstan-param array<int, array<string, mixed>> $rows
      * @phpstan-param array<string, AttributeInterface> $attributes
      */
-    private function makeModel(array $rows, array $attributes): AttributeValues
+    private function makeModel(array $rows, array $attributes, array $unsupported = []): AttributeValues
     {
         $adapter = $this->createStub(Mysql::class);
         $adapter->method('fetchAll')->willReturn($rows);
@@ -78,6 +79,7 @@ class AttributeValuesTest extends TestCase
 
         $query = $this->createStub(AttributeValuesQuery::class);
         $query->method('build')->willReturn($selects);
+        $query->method('unsupportedCodes')->willReturn($unsupported);
 
         $objectManager = $this->createStub(ObjectManagerInterface::class);
         $objectManager->method('create')->willReturnCallback(
@@ -206,5 +208,20 @@ class AttributeValuesTest extends TestCase
         self::assertCount(1, $items);
         self::assertNull($items[0]->getStoreValue());
         self::assertSame('simple', $items[0]->getDefaultValue());
+    }
+
+    public function testUnsupportedAttributeCodesAreRejectedAndListed(): void
+    {
+        $this->expectException(InputException::class);
+        $this->expectExceptionMessage('category_ids, tier_price');
+
+        $this->makeModel(
+            [],
+            [
+                'category_ids' => $this->attribute('category_ids', 100, 'static'),
+                'tier_price' => $this->attribute('tier_price', 78, 'decimal'),
+            ],
+            ['category_ids', 'tier_price']
+        )->get(['sku-1'], ['category_ids', 'tier_price']);
     }
 }

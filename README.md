@@ -28,6 +28,13 @@ module degrades per feature instead of failing.
 | `/V1/dagster-bridge/products/attribute-values` | POST | `DDTCoreX_DagsterBridge::read` | Body `{skus, attribute_codes, store_id}`; one item per pair with `store_value` and `default_value` (at most 1000 SKUs and 50 codes per call) |
 | `/V1/dagster-bridge/categories/upsert` | POST | `DDTCoreX_DagsterBridge::write` | Body `{paths, root, separator}`; creates the missing categories and answers every requested path with its id, in one transaction |
 
+`products/attribute-values` reads a static attribute from its column of
+`catalog_product_entity` and any other attribute from its standard EAV value
+table (`catalog_product_entity_{int,decimal,varchar,text,datetime}`). A code
+that fits neither, such as `category_ids` and `media_gallery` (static but no
+column) or `tier_price` (its values live in a price table of their own),
+answers 400 naming every such code, as an unknown code does.
+
 A null value is absent from the JSON, because Magento's serializer drops null
 keys: a client reads `store_value` and `default_value` as missing rather than
 null. `categories/upsert` needs the write resource and is the only endpoint of
