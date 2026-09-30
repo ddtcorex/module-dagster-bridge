@@ -4,6 +4,10 @@ All notable changes to this module are documented in this file. The format
 follows Keep a Changelog and this project adheres to Semantic
 Versioning.
 
+Release checklist: set `Capabilities::VERSION` to the new heading below (a
+unit test fails the build when the two disagree), then tag `vX.Y.Z`;
+composer.json carries no version field.
+
 ## [1.0.0] - unreleased
 
 First release. Four service contracts, each one behind its own ACL resource,
@@ -12,8 +16,8 @@ older module degrades per capability instead of failing.
 
 ### Added
 
-- `GET /V1/dagster-bridge/capabilities`: module version, read from this
-  module's own composer.json, and the list of capabilities this release
+- `GET /V1/dagster-bridge/capabilities`: module version, from
+  `Capabilities::VERSION`, and the list of capabilities this release
   exposes.
 - `GET /V1/dagster-bridge/products/index`: `entity_id`, `sku`, `type_id`,
   `attribute_set_id`, store 0 `status` and `updated_at` for every product,

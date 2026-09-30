@@ -20,7 +20,9 @@ module degrades per feature instead of failing.
   only: Adobe Commerce with content staging keeps one product row per staged
   version (`row_id`), and the index and attribute value queries would answer
   one row per version. Commerce content staging is not supported.
-- PHP 8.1 to 8.5.
+- PHP 8.1 to 8.5, as the Magento release allows. The Composer constraints
+  admit the Magento 2.4 components from 2.4.6 on (`magento/framework`
+  `~103.0.6`).
 
 ## Endpoints
 
@@ -122,6 +124,13 @@ composer phpcs      # Magento2 standard
 composer phpstan    # level 6 with bitexpert/phpstan-magento
 composer test       # PHPUnit
 ```
+
+`composer install` resolves the `magento/*` packages from the Mage-OS mirror
+declared in this module's `repositories` block, because Packagist does not
+host them. Composer reads `repositories` from the root package only, so the
+block matters for developing this module and is ignored when a store requires
+it. CI also runs the whole gate with `--prefer-lowest` on PHP 8.1, which
+installs the Magento 2.4.6 components (`magento/framework` 103.0.6).
 
 The unit tests need no Magento installation: they cover the SQL builders and
 the path parser, and mock everything that would touch the application.

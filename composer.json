@@ -3,7 +3,6 @@
     "description": "Optional Magento 2 REST endpoints that make catalog reads and category upserts cheap for dagster-magento",
     "type": "magento2-module",
     "license": "MIT",
-    "version": "1.0.0",
     "keywords": [
         "magento2",
         "magento",
@@ -19,12 +18,13 @@
         }
     ],
     "require": {
-        "php": ">=8.1",
-        "magento/framework": "*",
-        "magento/module-backend": "*",
-        "magento/module-catalog": "*",
-        "magento/module-catalog-import-export": "*",
-        "magento/module-store": "*"
+        "php": "~8.1.0 || ~8.2.0 || ~8.3.0 || ~8.4.0 || ~8.5.0",
+        "magento/framework": "~103.0.6",
+        "magento/module-backend": "~102.0.6",
+        "magento/module-catalog": "~104.0.6",
+        "magento/module-catalog-import-export": "~101.1.6",
+        "magento/module-eav": "~102.1.6",
+        "magento/module-store": "~101.1.6"
     },
     "require-dev": {
         "magento/magento-coding-standard": "^41",
