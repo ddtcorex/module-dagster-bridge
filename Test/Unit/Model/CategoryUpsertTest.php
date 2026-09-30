@@ -15,8 +15,7 @@ use DDTCoreX\DagsterBridge\Model\Data\CategoryPathIdFactory;
 use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Catalog\Api\Data\CategoryInterface;
 use Magento\CatalogImportExport\Model\Import\Product\CategoryProcessor;
-use Magento\Framework\App\ResourceConnection;
-use Magento\Framework\DB\Adapter\AdapterInterface;
+use Magento\Catalog\Model\ResourceModel\Category as CategoryResource;
 use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\Framework\Exception\InputException;
 use Magento\Framework\ObjectManagerInterface;
@@ -52,7 +51,7 @@ class CategoryUpsertTest extends TestCase
      * @param array $names Category id => name, for repository reads.
      * @param array $children Category id => comma separated child ids.
      * @param string|null $failOnName Name whose save throws.
-     * @param AdapterInterface|null $connection
+     * @param CategoryResource|null $categoryResource
      * @return CategoryUpsert
      * @phpstan-param array<int, string> $names
      * @phpstan-param array<int, string> $children
@@ -62,7 +61,7 @@ class CategoryUpsertTest extends TestCase
         array $names = [],
         array $children = [],
         ?string $failOnName = null,
-        ?AdapterInterface $connection = null
+        ?CategoryResource $categoryResource = null
     ): CategoryUpsert {
         $this->savedNames = [];
         $this->createdName = '';
@@ -100,9 +99,6 @@ class CategoryUpsertTest extends TestCase
             return $saved;
         });
 
-        $resource = $this->createStub(ResourceConnection::class);
-        $resource->method('getConnection')->willReturn($connection ?? $this->createStub(AdapterInterface::class));
-
         $objectManager = $this->createStub(ObjectManagerInterface::class);
         $objectManager->method('create')->willReturnCallback(
             static function ($type, array $arguments = []) {
@@ -116,7 +112,7 @@ class CategoryUpsertTest extends TestCase
             $repository,
             $factory,
             new CategoryPathIdFactory($objectManager),
-            $resource
+            $categoryResource ?? $this->createStub(CategoryResource::class)
         );
     }
 
@@ -198,10 +194,10 @@ class CategoryUpsertTest extends TestCase
         $processor = $this->createMock(CategoryProcessor::class);
         $processor->expects($this->never())->method('upsertCategories');
 
-        $connection = $this->createMock(AdapterInterface::class);
-        $connection->expects($this->once())->method('beginTransaction');
-        $connection->expects($this->once())->method('rollBack');
-        $connection->expects($this->never())->method('commit');
+        $categoryResource = $this->createMock(CategoryResource::class);
+        $categoryResource->expects($this->once())->method('beginTransaction');
+        $categoryResource->expects($this->once())->method('rollBack');
+        $categoryResource->expects($this->never())->method('commit');
 
         try {
             $this->makeModel(
@@ -209,7 +205,7 @@ class CategoryUpsertTest extends TestCase
                 [1 => '', 2 => 'Default Category'],
                 [1 => '2', 2 => ''],
                 'Tops/Tees',
-                $connection
+                $categoryResource
             )->upsert(['Default Category|Tops/Tees'], 'Default Category', '|');
             self::fail('an InputException was expected');
         } catch (InputException $exception) {
@@ -252,5 +248,38 @@ class CategoryUpsertTest extends TestCase
         $this->expectExceptionMessage('Default Category/Men');
 
         $this->makeModel($processor)->upsert(['Men'], 'Default Category');
+    }
+
+    public function testSuccessCommitsThroughTheCategoryResourceModel(): void
+    {
+        $processor = $this->createStub(CategoryProcessor::class);
+        $processor->method('upsertCategories')->willReturn([7]);
+        $processor->method('getFailedCategories')->willReturn([]);
+
+        // the resource model, not the raw adapter, owns the transaction so
+        // the category after commit callbacks run and a rollback clears them
+        $categoryResource = $this->createMock(CategoryResource::class);
+        $categoryResource->expects($this->once())->method('beginTransaction');
+        $categoryResource->expects($this->once())->method('commit');
+        $categoryResource->expects($this->never())->method('rollBack');
+
+        $items = $this->makeModel($processor, [], [], null, $categoryResource)->upsert(['Men']);
+
+        self::assertSame(7, $items[0]->getId());
+    }
+
+    public function testAnErrorThatIsNotAnExceptionStillRollsBack(): void
+    {
+        $processor = $this->createStub(CategoryProcessor::class);
+        $processor->method('upsertCategories')->willThrowException(new \TypeError('boom'));
+
+        $categoryResource = $this->createMock(CategoryResource::class);
+        $categoryResource->expects($this->once())->method('beginTransaction');
+        $categoryResource->expects($this->once())->method('rollBack');
+        $categoryResource->expects($this->never())->method('commit');
+
+        $this->expectException(\TypeError::class);
+
+        $this->makeModel($processor, [], [], null, $categoryResource)->upsert(['Men']);
     }
 }

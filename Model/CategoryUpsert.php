@@ -13,9 +13,10 @@ use DDTCoreX\DagsterBridge\Api\Data\CategoryPathIdInterface;
 use DDTCoreX\DagsterBridge\Model\Data\CategoryPathIdFactory;
 use Exception;
 use Magento\Catalog\Api\CategoryRepositoryInterface;
+use Magento\Catalog\Model\ResourceModel\Category as CategoryResource;
 use Magento\CatalogImportExport\Model\Import\Product\CategoryProcessor;
-use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\InputException;
+use Throwable;
 
 /**
  * Creates the categories a path names.
@@ -24,7 +25,9 @@ use Magento\Framework\Exception\InputException;
  * it already knows how Magento wants a category tree built. It cannot express a
  * name that contains its own level separator, so such a call walks the tree
  * through the category repository instead, parent first. Either way the whole
- * call runs in one transaction.
+ * call runs in one transaction, owned by the category resource model so that
+ * the after commit callbacks each saved category registers run on commit and
+ * are dropped on rollback.
  */
 class CategoryUpsert implements CategoryUpsertInterface
 {
@@ -74,11 +77,11 @@ class CategoryUpsert implements CategoryUpsertInterface
     private $itemFactory;
 
     /**
-     * Connection the transaction runs on.
+     * Category resource model whose transaction the whole call runs in.
      *
-     * @var ResourceConnection
+     * @var CategoryResource
      */
-    private $resource;
+    private $categoryResource;
 
     /**
      * Path the current work belongs to, for error messages.
@@ -93,7 +96,7 @@ class CategoryUpsert implements CategoryUpsertInterface
      * @param CategoryRepositoryInterface $categoryRepository
      * @param CategoryFactory $categoryFactory
      * @param CategoryPathIdFactory $itemFactory
-     * @param ResourceConnection $resource
+     * @param CategoryResource $categoryResource
      */
     public function __construct(
         CategoryPathParser $parser,
@@ -101,14 +104,14 @@ class CategoryUpsert implements CategoryUpsertInterface
         CategoryRepositoryInterface $categoryRepository,
         CategoryFactory $categoryFactory,
         CategoryPathIdFactory $itemFactory,
-        ResourceConnection $resource
+        CategoryResource $categoryResource
     ) {
         $this->parser = $parser;
         $this->processor = $processor;
         $this->categoryRepository = $categoryRepository;
         $this->categoryFactory = $categoryFactory;
         $this->itemFactory = $itemFactory;
-        $this->resource = $resource;
+        $this->categoryResource = $categoryResource;
     }
 
     /**
@@ -129,8 +132,7 @@ class CategoryUpsert implements CategoryUpsertInterface
             return [];
         }
 
-        $connection = $this->resource->getConnection();
-        $connection->beginTransaction();
+        $this->categoryResource->beginTransaction();
 
         try {
             $ids = $this->needsRepository($paths, $root, $separator)
@@ -150,19 +152,21 @@ class CategoryUpsert implements CategoryUpsertInterface
                 $items[] = $item;
             }
 
-            $connection->commit();
+            $this->categoryResource->commit();
 
             return $items;
-        } catch (InputException $exception) {
-            $connection->rollBack();
+        } catch (Throwable $throwable) {
+            // every failure rolls back, an Error as much as an Exception, so
+            // no transaction is left open and no commit callback survives
+            $this->categoryResource->rollBack();
 
-            throw $exception;
-        } catch (Exception $exception) {
-            $connection->rollBack();
+            if ($throwable instanceof InputException || !$throwable instanceof Exception) {
+                throw $throwable;
+            }
 
             throw new InputException(
-                __('Category path "%1" could not be created: %2', $this->currentPath, $exception->getMessage()),
-                $exception
+                __('Category path "%1" could not be created: %2', $this->currentPath, $throwable->getMessage()),
+                $throwable
             );
         }
     }
