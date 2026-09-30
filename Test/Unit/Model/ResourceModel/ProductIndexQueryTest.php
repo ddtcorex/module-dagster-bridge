@@ -124,13 +124,19 @@ class ProductIndexQueryTest extends TestCase
         self::assertStringContainsString('status_value.store_id = 0', $condition);
     }
 
-    public function testStatusJoinFollowsTheLinkFieldOnCommerceStaging(): void
+    public function testStatusJoinTakesTheLinkFieldFromTheMetadataPool(): void
     {
-        $select = $this->makeQuery('row_id', 97)->build(0, 10);
+        // only the source of the join column is pinned here: the module
+        // supports Open Source, where the link field is entity_id, and makes
+        // no claim about Commerce content staging (row_id versions)
+        $select = $this->makeQuery('link_field_from_metadata', 97)->build(0, 10);
 
         $from = $select->getPart(Select::FROM);
-        $condition = (string) $from['status_value']['joinCondition'];
-        self::assertStringNotContainsString('entity_id', $condition);
+        $condition = str_replace('`', '', (string) $from['status_value']['joinCondition']);
+        self::assertStringContainsString(
+            'status_value.link_field_from_metadata = e.link_field_from_metadata',
+            $condition
+        );
     }
 
     public function testReadsTheProductTableAndItsValueTable(): void

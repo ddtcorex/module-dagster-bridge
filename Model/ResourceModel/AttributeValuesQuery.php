@@ -193,9 +193,11 @@ class AttributeValuesQuery
     /**
      * Builds the query for one EAV value table.
      *
-     * The join goes through the link field, never through a hard coded
-     * entity_id, and each row carries its own store so the caller can tell the
-     * store value from the default one.
+     * The join goes through the link field the metadata pool reports, which
+     * is entity_id on Open Source, and each row carries its own store so the
+     * caller can tell the store value from the default one. Commerce content
+     * staging (row_id versions) is not supported: a product would answer one
+     * value per staged version.
      *
      * @param string[] $skus
      * @param AttributeInterface[] $group

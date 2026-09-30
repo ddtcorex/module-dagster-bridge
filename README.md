@@ -16,7 +16,10 @@ module degrades per feature instead of failing.
 
 ## Requirements
 
-- Magento Open Source 2.4.6 or newer.
+- Magento Open Source 2.4.6 or newer. The read endpoints are Open Source
+  only: Adobe Commerce with content staging keeps one product row per staged
+  version (`row_id`), and the index and attribute value queries would answer
+  one row per version. Commerce content staging is not supported.
 - PHP 8.1 to 8.5.
 
 ## Endpoints
