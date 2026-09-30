@@ -8,7 +8,7 @@ Release checklist: set `Capabilities::VERSION` to the new heading below (a
 unit test fails the build when the two disagree), then tag `vX.Y.Z`;
 composer.json carries no version field.
 
-## [1.0.0] - unreleased
+## [1.0.0] - 2026-09-30
 
 First release. Four service contracts, each one behind its own ACL resource,
 with the capabilities endpoint telling a client what the store offers so an
