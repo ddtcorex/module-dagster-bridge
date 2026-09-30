@@ -33,6 +33,24 @@ keys: a client reads `store_value` and `default_value` as missing rather than
 null. `categories/upsert` needs the write resource and is the only endpoint of
 this module that changes anything.
 
+### Category upsert semantics
+
+Every path goes through Magento's own CatalogImportExport category processor,
+so the tree is built exactly as a native product import builds it:
+
+- Names match case-insensitively: `men/shirts` reuses an existing
+  `Men/Shirts`.
+- An existing category is reused whether it is active or not, so an inactive
+  sibling is never duplicated.
+- New categories are created active, in the menu, and written at the admin
+  store (store 0), whatever store code the request URL carries.
+- The `root` must already be a tree root (a child of the invisible root,
+  matched case-insensitively); an unknown root answers 400 instead of being
+  created.
+- A `/` inside a name is allowed: pick another `separator` (for example `|`)
+  and the module escapes the slash as the processor's own `\/` quoting. A
+  name that ends with a backslash is rejected with 400.
+
 ## Access control
 
 The capabilities probe, the product index and the attribute values sit behind

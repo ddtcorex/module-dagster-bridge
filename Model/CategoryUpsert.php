@@ -9,25 +9,27 @@ declare(strict_types=1);
 namespace DDTCoreX\DagsterBridge\Model;
 
 use DDTCoreX\DagsterBridge\Api\CategoryUpsertInterface;
-use DDTCoreX\DagsterBridge\Api\Data\CategoryPathIdInterface;
 use DDTCoreX\DagsterBridge\Model\Data\CategoryPathIdFactory;
 use Exception;
 use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Catalog\Model\ResourceModel\Category as CategoryResource;
 use Magento\CatalogImportExport\Model\Import\Product\CategoryProcessor;
 use Magento\Framework\Exception\InputException;
+use Magento\Store\Model\Store;
 use Throwable;
 
 /**
  * Creates the categories a path names.
  *
- * The native CatalogImportExport processor does the work when it can, because
- * it already knows how Magento wants a category tree built. It cannot express a
- * name that contains its own level separator, so such a call walks the tree
- * through the category repository instead, parent first. Either way the whole
- * call runs in one transaction, owned by the category resource model so that
- * the after commit callbacks each saved category registers run on commit and
- * are dropped on rollback.
+ * Every path goes through the native CatalogImportExport category processor,
+ * so this endpoint builds the tree exactly as a native product import would:
+ * names match case-insensitively, an existing category is reused whether or not
+ * it is active, and new categories are written at the admin store (store 0). A
+ * slash inside a name is escaped as "\/", the processor's own quoting.
+ *
+ * The whole call runs in one transaction, owned by the category resource model
+ * so that the after commit callbacks each saved category registers run on
+ * commit and are dropped on rollback.
  */
 class CategoryUpsert implements CategoryUpsertInterface
 {
@@ -35,6 +37,11 @@ class CategoryUpsert implements CategoryUpsertInterface
      * The root above every store root, whose children are the tree roots.
      */
     private const INVISIBLE_ROOT_ID = 1;
+
+    /**
+     * Level separator of the native processor.
+     */
+    private const PROCESSOR_SEPARATOR = CategoryProcessor::DELIMITER_CATEGORY;
 
     /**
      * Delimiters that can separate paths in one processor call.
@@ -56,18 +63,11 @@ class CategoryUpsert implements CategoryUpsertInterface
     private $processor;
 
     /**
-     * Repository used when the processor cannot express a name.
+     * Repository the root is looked up in.
      *
      * @var CategoryRepositoryInterface
      */
     private $categoryRepository;
-
-    /**
-     * Builder of the categories created through the repository.
-     *
-     * @var CategoryFactory
-     */
-    private $categoryFactory;
 
     /**
      * Factory of one path answer.
@@ -84,17 +84,9 @@ class CategoryUpsert implements CategoryUpsertInterface
     private $categoryResource;
 
     /**
-     * Path the current work belongs to, for error messages.
-     *
-     * @var string
-     */
-    private $currentPath = '';
-
-    /**
      * @param CategoryPathParser $parser
      * @param CategoryProcessor $processor
      * @param CategoryRepositoryInterface $categoryRepository
-     * @param CategoryFactory $categoryFactory
      * @param CategoryPathIdFactory $itemFactory
      * @param CategoryResource $categoryResource
      */
@@ -102,14 +94,12 @@ class CategoryUpsert implements CategoryUpsertInterface
         CategoryPathParser $parser,
         CategoryProcessor $processor,
         CategoryRepositoryInterface $categoryRepository,
-        CategoryFactory $categoryFactory,
         CategoryPathIdFactory $itemFactory,
         CategoryResource $categoryResource
     ) {
         $this->parser = $parser;
         $this->processor = $processor;
         $this->categoryRepository = $categoryRepository;
-        $this->categoryFactory = $categoryFactory;
         $this->itemFactory = $itemFactory;
         $this->categoryResource = $categoryResource;
     }
@@ -132,23 +122,19 @@ class CategoryUpsert implements CategoryUpsertInterface
             return [];
         }
 
+        $this->assertRootExists($root);
+        $joinedPaths = $this->joinForProcessor($paths, $root, $separator);
+
         $this->categoryResource->beginTransaction();
 
         try {
-            $ids = $this->needsRepository($paths, $root, $separator)
-                ? $this->upsertThroughRepository($paths, $root, $separator)
-                : $this->upsertThroughProcessor($paths, $root, $separator);
+            $ids = $this->upsertThroughProcessor($joinedPaths);
 
             $items = [];
-            foreach ($paths as $path) {
-                $this->currentPath = $path;
-                if (!isset($ids[$path])) {
-                    throw new InputException(__('Category path "%1" was not resolved.', $path));
-                }
-
+            foreach (array_values($paths) as $index => $path) {
                 $item = $this->itemFactory->create();
                 $item->setPath($path);
-                $item->setId((int) $ids[$path]);
+                $item->setId($ids[$index]);
                 $items[] = $item;
             }
 
@@ -165,54 +151,87 @@ class CategoryUpsert implements CategoryUpsertInterface
             }
 
             throw new InputException(
-                __('Category path "%1" could not be created: %2', $this->currentPath, $throwable->getMessage()),
+                __(
+                    'Category path "%1" could not be created: %2',
+                    implode('", "', $paths),
+                    $throwable->getMessage()
+                ),
                 $throwable
             );
         }
     }
 
     /**
-     * Tells whether a name contains the processor's own level separator.
+     * Rejects a root that is not a tree root already.
+     *
+     * The native processor would silently create an unknown root as a new
+     * tree, so the root is checked first, case-insensitively as the processor
+     * compares names, and at the admin store.
+     *
+     * @param string $root
+     * @return void
+     * @throws InputException
+     */
+    private function assertRootExists(string $root): void
+    {
+        $wanted = mb_strtolower(trim($root));
+        $children = (string) $this->categoryRepository
+            ->get(self::INVISIBLE_ROOT_ID, Store::DEFAULT_STORE_ID)
+            ->getChildren();
+
+        foreach (explode(',', $children) as $childId) {
+            $childId = (int) trim($childId);
+            if ($childId === 0) {
+                continue;
+            }
+            $name = (string) $this->categoryRepository->get($childId, Store::DEFAULT_STORE_ID)->getName();
+            if (mb_strtolower($name) === $wanted) {
+                return;
+            }
+        }
+
+        throw new InputException(__('The root category "%1" does not exist.', $root));
+    }
+
+    /**
+     * Turns every path into the processor's own form, names escaped.
      *
      * @param string[] $paths
      * @param string $root
      * @param string $separator
-     * @return bool
+     * @return string[] One processor path per requested path, same order.
+     * @throws InputException
      */
-    private function needsRepository(array $paths, string $root, string $separator): bool
+    private function joinForProcessor(array $paths, string $root, string $separator): array
     {
+        $joined = [];
         foreach ($paths as $path) {
+            $names = [];
             foreach ($this->parser->parse($path, $root, $separator) as $name) {
-                if (strpos($name, '/') !== false) {
-                    return true;
+                if (substr($name, -1) === '\\') {
+                    throw new InputException(
+                        __('Category name "%1" in path "%2" ends with a backslash, which the native '
+                            . 'processor cannot store.', $name, $path)
+                    );
                 }
+                $names[] = str_replace(self::PROCESSOR_SEPARATOR, '\\' . self::PROCESSOR_SEPARATOR, $name);
             }
+            $joined[] = implode(self::PROCESSOR_SEPARATOR, $names);
         }
 
-        return false;
+        return $joined;
     }
 
     /**
      * Creates the paths with the native processor.
      *
-     * @param string[] $paths
-     * @param string $root
-     * @param string $separator
-     * @return array Path => category id.
-     * @phpstan-return array<string, int>
+     * @param string[] $joinedPaths
+     * @return int[] One category id per path, same order.
      * @throws InputException
      */
-    private function upsertThroughProcessor(array $paths, string $root, string $separator): array
+    private function upsertThroughProcessor(array $joinedPaths): array
     {
-        $levelSets = [];
-        $joinedPaths = [];
-        foreach ($paths as $path) {
-            $levels = $this->parser->parse($path, $root, $separator);
-            $levelSets[] = $levels;
-            $joinedPaths[] = implode('/', $levels);
-        }
-
-        $delimiter = $this->pickPathDelimiter($levelSets);
+        $delimiter = $this->pickPathDelimiter($joinedPaths);
         $ids = $this->processor->upsertCategories(implode($delimiter, $joinedPaths), $delimiter);
 
         $failures = $this->processor->getFailedCategories();
@@ -224,106 +243,32 @@ class CategoryUpsert implements CategoryUpsertInterface
             );
         }
 
-        if (count($ids) !== count($paths)) {
+        if (count($ids) !== count($joinedPaths)) {
             throw new InputException(
-                __('The native processor answered %1 ids for %2 paths.', count($ids), count($paths))
+                __('The native processor answered %1 ids for %2 paths.', count($ids), count($joinedPaths))
             );
         }
 
-        $resolved = [];
-        foreach (array_values($paths) as $index => $path) {
-            $resolved[$path] = (int) $ids[$index];
-        }
-
-        return $resolved;
+        return array_map('intval', array_values($ids));
     }
 
     /**
-     * Creates the paths through the category repository, parent first.
+     * Picks a path delimiter that appears in none of the paths.
      *
-     * @param string[] $paths
-     * @param string $root
-     * @param string $separator
-     * @return array Path => category id.
-     * @phpstan-return array<string, int>
-     * @throws InputException
-     */
-    private function upsertThroughRepository(array $paths, string $root, string $separator): array
-    {
-        $rootId = $this->findChildId(self::INVISIBLE_ROOT_ID, $root);
-        if ($rootId === null) {
-            throw new InputException(__('The root category "%1" does not exist.', $root));
-        }
-
-        $resolved = [];
-        foreach ($paths as $path) {
-            $this->currentPath = $path;
-            $parentId = $rootId;
-
-            foreach (array_slice($this->parser->parse($path, $root, $separator), 1) as $name) {
-                $childId = $this->findChildId($parentId, $name);
-                if ($childId === null) {
-                    $category = $this->categoryFactory->create();
-                    $category->setName($name);
-                    $category->setParentId($parentId);
-                    $category->setIsActive(true);
-                    $childId = (int) $this->categoryRepository->save($category)->getId();
-                }
-                $parentId = $childId;
-            }
-
-            $resolved[$path] = $parentId;
-        }
-
-        return $resolved;
-    }
-
-    /**
-     * Finds a child of the given parent by name.
-     *
-     * @param int $parentId
-     * @param string $name
-     * @return int|null
-     */
-    private function findChildId(int $parentId, string $name): ?int
-    {
-        $children = (string) $this->categoryRepository->get($parentId)->getChildren();
-        foreach (explode(',', $children) as $childId) {
-            $childId = (int) trim($childId);
-            if ($childId === 0) {
-                continue;
-            }
-            if ((string) $this->categoryRepository->get($childId)->getName() === $name) {
-                return $childId;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Picks a path delimiter that appears in none of the level names.
-     *
-     * @param array $levelSets
+     * @param string[] $joinedPaths
      * @return string
-     * @phpstan-param array<int, array<int, string>> $levelSets
      * @throws InputException
      */
-    private function pickPathDelimiter(array $levelSets): string
+    private function pickPathDelimiter(array $joinedPaths): string
     {
         foreach (self::PATH_DELIMITERS as $delimiter) {
-            $used = false;
-            foreach ($levelSets as $levels) {
-                foreach ($levels as $name) {
-                    if (strpos($name, $delimiter) !== false) {
-                        $used = true;
-                        break 2;
-                    }
+            foreach ($joinedPaths as $path) {
+                if (strpos($path, $delimiter) !== false) {
+                    continue 2;
                 }
             }
-            if (!$used) {
-                return $delimiter;
-            }
+
+            return $delimiter;
         }
 
         throw new InputException(__('None of the supported path delimiters is free of the requested names.'));
