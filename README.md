@@ -85,7 +85,8 @@ admin token carries both already.
 
 ## Install
 
-From a tagged release:
+Once 1.0.0 is tagged (no release exists yet, so this constraint does not
+resolve today):
 
 ```bash
 composer config repositories.dagster-bridge vcs https://github.com/ddtcorex/module-dagster-bridge
@@ -95,33 +96,29 @@ bin/magento setup:upgrade
 bin/magento cache:flush
 ```
 
-From a branch, before a tag exists (verified live in a 2.4.9 sandbox: the
-package resolves, installs under `vendor/ddtcorex/module-dagster-bridge` and
-`bin/magento module:status` reports it enabled):
+Until then, from the default branch:
 
 ```bash
 composer config repositories.dagster-bridge vcs https://github.com/ddtcorex/module-dagster-bridge
-composer config minimum-stability dev
-composer config prefer-stable true
-composer require ddtcorex/module-dagster-bridge:dev-feat/bridge-v1
+composer require ddtcorex/module-dagster-bridge:dev-master
 ```
 
-Both stability settings are needed: the package advertises itself through the
-VCS repository, and until a tag exists Composer only sees a `dev-` branch.
+An explicit `dev-master` constraint is enough on its own: Composer allows the
+dev stability for a package the root requires by branch name, so the store's
+`minimum-stability` can stay `stable` (checked with a dry-run `composer
+require` against a 2.4.9 project). Then run the same three `bin/magento`
+commands.
 
 For a checkout that is not installed through Composer, place it at
 `app/code/DDTCoreX/DagsterBridge` and run the same three `bin/magento`
 commands.
-
-Create an integration with the `Dagster Bridge: read catalog data` resource,
-or a role that carries it, and use that integration's token for the library.
 
 ## Development
 
 ```bash
 composer install
 composer phpcs      # Magento2 standard
-composer phpstan    # level 6 with bitexpert/phpstan-magento
+composer phpstan    # level 6
 composer test       # PHPUnit
 ```
 
