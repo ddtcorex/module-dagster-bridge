@@ -42,9 +42,11 @@ that repository from the per version records in its `compat/results/`.
 | 2.4.8-p5 | 2.4.8-p5 | 8.4.1 | MariaDB 11.4.10 | opensearch 3.0 | 1.0.0 | 2026-10-02 | verified (15 of 15 passed) |
 | 2.4.9 | 2.4.9 | 8.5.9 | MariaDB 11.8.8 | opensearch 3.0 | 1.0.0 | 2026-09-30 | verified (15 of 15 passed) |
 
-2.4.7 has no row: it cannot be installed through govard, because Composer's
-security blocking refuses `league/flysystem` 2.x, so it is neither claimed nor
-known to fail. A newer patch of a verified line is expected to behave the same
+2.4.7 has no verified row: its row says it was not provisioned, because it
+cannot be installed through govard (Composer's security blocking refuses the
+`league/flysystem` 2.x dependency), so it is neither claimed nor known to fail.
+2.4.8-p5 failed one library bulk test on its first run and passed all 15 two
+days later; the first run's log was lost and the failure is unexplained. A newer patch of a verified line is expected to behave the same
 but is unverified until the matrix is rerun. The Result column counts the whole
 library suite, not only the module.
 
