@@ -16,13 +16,37 @@ module degrades per feature instead of failing.
 
 ## Requirements
 
-- Magento Open Source 2.4.6 or newer. The read endpoints are Open Source
+- Magento Open Source 2.4.6 or newer; the lines actually run end to end are
+  listed under "Compatibility". The read endpoints are Open Source
   only: Adobe Commerce with content staging keeps one product row per staged
   version (`row_id`), and the index and attribute value queries would answer
   one row per version. Commerce content staging is not supported.
 - PHP 8.1 to 8.5, as the Magento release allows. The Composer constraints
   admit the Magento 2.4 components from 2.4.6 on (`magento/framework`
   `~103.0.6`).
+
+## Compatibility
+
+Module 1.0.0 was exercised live through the [dagster-magento](https://github.com/ddtcorex/dagster-magento)
+suite on a fresh sandbox of each Magento patch below, with the module enabled
+and the library required to use it (`use_bridge="require"`, so a missing
+capability fails the run instead of falling back). The suite covers the product
+index, store scoped attribute values and the category upsert, in sync and bulk
+mode, plus the case insensitive category path rule. The table is generated in
+that repository from the per version records in its `compat/results/`.
+
+| Version | Magento patch | PHP | Database | Search | Bridge | Date | Result |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2.4.6-p15 | 2.4.6-p15 | 8.2.26 | MariaDB 10.11.18 | elasticsearch7 7.17.28 | 1.0.0 | 2026-09-30 | verified (15 of 15 passed) |
+| 2.4.7-p10 | - | - | - | - | - | 2026-09-30 | not provisioned: Composer security blocking refused a dependency of 2.4.7-p10 and govard bootstrap cannot disable it |
+| 2.4.8-p5 | 2.4.8-p5 | 8.4.1 | MariaDB 11.4.10 | opensearch 3.0 | 1.0.0 | 2026-10-02 | verified (15 of 15 passed) |
+| 2.4.9 | 2.4.9 | 8.5.9 | MariaDB 11.8.8 | opensearch 3.0 | 1.0.0 | 2026-09-30 | verified (15 of 15 passed) |
+
+2.4.7 has no row: it cannot be installed through govard, because Composer's
+security blocking refuses `league/flysystem` 2.x, so it is neither claimed nor
+known to fail. A newer patch of a verified line is expected to behave the same
+but is unverified until the matrix is rerun. The Result column counts the whole
+library suite, not only the module.
 
 ## Endpoints
 

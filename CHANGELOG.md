@@ -8,6 +8,15 @@ Release checklist: set `Capabilities::VERSION` to the new heading below (a
 unit test fails the build when the two disagree), then tag `vX.Y.Z`;
 composer.json carries no version field.
 
+## [Unreleased]
+
+### Changed
+
+- Documentation only: the README lists the Magento patches the module was
+  exercised on (2.4.6-p15, 2.4.8-p5, 2.4.9) instead of claiming every release
+  from 2.4.6, and says 2.4.7 was not verified. No code changed, so this is not a
+  new version.
+
 ## [1.0.0] - 2026-09-30
 
 First release. Four service contracts, each one behind its own ACL resource,
