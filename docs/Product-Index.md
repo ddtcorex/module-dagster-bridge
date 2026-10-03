@@ -30,7 +30,7 @@ Items are ordered by `entity_id` ascending.
 
 ## Status at store 0
 
-`status` comes from a left join on `catalog_product_entity_int` restricted to the `status` attribute id (resolved from the EAV attribute repository) and `store_id = 0`. A status overridden at a store view is **not** reflected: the index reports the default scope value only. To read a store view's status, ask [Attribute Values](Attribute-Values) for the `status` code with that `store_id`.
+`status` comes from a left join on `catalog_product_entity_int` restricted to the `status` attribute id (resolved from the EAV attribute repository) and `store_id = 0`. A status overridden at a store view is **not** reflected: the index reports the default scope value only. To read a store view's status, ask [Attribute Values](Attribute-Values.md) for the `status` code with that `store_id`.
 
 ## Paging rule
 
@@ -90,8 +90,8 @@ The status join goes through the product link field reported by Magento's metada
 
 ## See also
 
-- [Endpoints](Endpoints)
-- [Attribute Values](Attribute-Values)
-- [Capabilities](Capabilities)
-- [Compatibility](Compatibility)
+- [Endpoints](Endpoints.md)
+- [Attribute Values](Attribute-Values.md)
+- [Capabilities](Capabilities.md)
+- [Compatibility](Compatibility.md)
 - dagster-magento library wiki: https://github.com/ddtcorex/dagster-magento/wiki

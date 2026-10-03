@@ -51,8 +51,8 @@ A separate CI job, "php 8.1, lowest dependencies", runs `composer update --prefe
 
 ## See also
 
-- [Home](Home)
-- [Installation](Installation)
-- [Development](Development)
-- [Product Index](Product-Index)
+- [Home](README.md)
+- [Installation](Installation.md)
+- [Development](Development.md)
+- [Product Index](Product-Index.md)
 - dagster-magento library wiki: https://github.com/ddtcorex/dagster-magento/wiki

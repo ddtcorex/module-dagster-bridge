@@ -62,8 +62,8 @@ Do not grant `Magento_Backend::all` (full admin) to an automation user just for 
 
 ## See also
 
-- [Endpoints](Endpoints)
-- [Category Upsert](Category-Upsert)
-- [Installation](Installation)
-- [Troubleshooting](Troubleshooting)
+- [Endpoints](Endpoints.md)
+- [Category Upsert](Category-Upsert.md)
+- [Installation](Installation.md)
+- [Troubleshooting](Troubleshooting.md)
 - dagster-magento library wiki: https://github.com/ddtcorex/dagster-magento/wiki

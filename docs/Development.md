@@ -47,7 +47,7 @@ The tests run without a Magento installation: `Test/Unit/bootstrap.php` loads Co
 ### What they cannot prove
 
 - **Real SQL.** The query builders are tested by inspecting the `Select` they build. Most of those tests use a quote double that pastes values in unescaped, so they pin the query's shape, not its safety. One test binds hostile SKUs through a double that escapes like MySQL string literals. Injection safety rests on two facts the code keeps: every caller value reaches SQL through the adapter's `quoteInto` (bound `?` placeholders), and every identifier is a table or column name the module resolves itself (attribute metadata, the metadata pool, the checked product columns), never caller text.
-- **The native category processor, the lock provider, the transaction, the web API layer** (routing, ACL, serialization, null dropping, HTTP status mapping). These are mocked. They are covered only by the live suite of the dagster-magento library on real Magento installs (see [Compatibility](Compatibility)).
+- **The native category processor, the lock provider, the transaction, the web API layer** (routing, ACL, serialization, null dropping, HTTP status mapping). These are mocked. They are covered only by the live suite of the dagster-magento library on real Magento installs (see [Compatibility](Compatibility.md)).
 
 ## CI
 
@@ -57,7 +57,7 @@ The tests run without a Magento installation: `Test/Unit/bootstrap.php` loads Co
 | --- | --- | --- | --- |
 | `php 8.1` ... `php 8.5` (matrix, fail-fast off) | 8.1, 8.2, 8.3, 8.4, 8.5 | `composer install --prefer-dist` | phpcs, phpstan, phpunit |
 | `php 8.1, lowest dependencies` | 8.1 | `composer update --prefer-lowest --prefer-stable` (Magento 2.4.6 components, framework 103.0.6) | phpcs, phpstan, phpunit |
-| `docs` | none | none | `scripts/check-docs.sh docs`: `Home.md` exists, no broken link between pages |
+| `docs` | none | none | `scripts/check-docs.sh docs README.md`: `docs/README.md` exists, no broken link between pages or from the README |
 
 ## Release procedure
 
@@ -89,19 +89,19 @@ Model/                      implementations
 etc/
   acl.xml  di.xml  module.xml  webapi.xml
 Test/Unit/                  PHPUnit, bootstrap, phpunit.xml.dist
-.github/workflows/          ci.yml, release.yml, sync-wiki.yml
-docs/                       the wiki pages (flat markdown), published by sync-wiki.yml
-scripts/check-docs.sh       link check run by CI and by sync-wiki.yml
+.github/workflows/          ci.yml, release.yml
+docs/                       this documentation (markdown, docs/README.md is the index)
+scripts/check-docs.sh       link check between the docs pages, run by CI
 CHANGELOG.md  README.md  LICENSE  composer.json  registration.php
 phpcs.xml.dist  phpstan.neon.dist
 ```
 
-Do not develop inside a Magento store's `app/code` with `vendor/` and caches present: Magento scans every PHP file there and `setup:di:compile` fails on them (see [Troubleshooting](Troubleshooting)).
+Do not develop inside a Magento store's `app/code` with `vendor/` and caches present: Magento scans every PHP file there and `setup:di:compile` fails on them (see [Troubleshooting](Troubleshooting.md)).
 
 ## See also
 
-- [Compatibility](Compatibility)
-- [Capabilities](Capabilities)
-- [Installation](Installation)
-- [Troubleshooting](Troubleshooting)
+- [Compatibility](Compatibility.md)
+- [Capabilities](Capabilities.md)
+- [Installation](Installation.md)
+- [Troubleshooting](Troubleshooting.md)
 - dagster-magento library wiki: https://github.com/ddtcorex/dagster-magento/wiki

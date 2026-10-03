@@ -126,8 +126,8 @@ Validation that needs no database write (empty separator, unknown root, trailing
 
 ## See also
 
-- [Endpoints](Endpoints)
-- [Access Control](Access-Control)
-- [Troubleshooting](Troubleshooting)
-- [Capabilities](Capabilities)
+- [Endpoints](Endpoints.md)
+- [Access Control](Access-Control.md)
+- [Troubleshooting](Troubleshooting.md)
+- [Capabilities](Capabilities.md)
 - dagster-magento library wiki: https://github.com/ddtcorex/dagster-magento/wiki

@@ -26,7 +26,7 @@ Check the URL too: `/rest/V1/dagster-bridge/capabilities` (or with a store code,
 | capabilities, products/index, products/attribute-values | `DDTCoreX_DagsterBridge::read` |
 | categories/upsert | `DDTCoreX_DagsterBridge::write` |
 
-`::write` does not imply `::read`. **Fix:** add the resource to the admin role or integration ([Access Control](Access-Control)), then request a new token. If an integration token is rejected outright, check that integration tokens are allowed as standalone bearer tokens (Stores > Configuration > Services > OAuth > Consumer Settings).
+`::write` does not imply `::read`. **Fix:** add the resource to the admin role or integration ([Access Control](Access-Control.md)), then request a new token. If an integration token is rejected outright, check that integration tokens are allowed as standalone bearer tokens (Stores > Configuration > Services > OAuth > Consumer Settings).
 
 ## 400 "Unknown attribute codes: %1."
 
@@ -34,7 +34,7 @@ Check the URL too: `/rest/V1/dagster-bridge/capabilities` (or with a store code,
 
 ## 400 "Attribute codes this endpoint cannot read: %1. ..."
 
-**Cause:** the attribute exists but its values are not where the endpoint reads: a static attribute that is not a column of `catalog_product_entity` (`category_ids`, `media_gallery`), or values in a table of their own or behind a non-scalar backend (`tier_price`). **Fix:** read those through native REST. See [Attribute Values](Attribute-Values).
+**Cause:** the attribute exists but its values are not where the endpoint reads: a static attribute that is not a column of `catalog_product_entity` (`category_ids`, `media_gallery`), or values in a table of their own or behind a non-scalar backend (`tier_price`). **Fix:** read those through native REST. See [Attribute Values](Attribute-Values.md).
 
 ## 400 "At least one SKU is required." / "At least one attribute code is required."
 
@@ -77,7 +77,7 @@ Check the URL too: `/rest/V1/dagster-bridge/capabilities` (or with a store code,
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `"items": []`, no `next_after` | `after` is at or above the highest `entity_id`, or the catalog is empty | start at `after=0` |
-| Items for a SKU have no `store_value` and no `default_value` | the SKU matches no product, or the product has no value | check existence with the [Product Index](Product-Index) |
+| Items for a SKU have no `store_value` and no `default_value` | the SKU matches no product, or the product has no value | check existence with the [Product Index](Product-Index.md) |
 | `store_value` missing but `default_value` present | the store has no override; Magento would show the default | apply the fallback: store value if present, else default |
 | `status` missing from an index item | no store 0 status row | read `status` per store through attribute values |
 | A value you expect is missing in a client | null keys are dropped from JSON | read with a default, never `item["store_value"]` |
@@ -107,9 +107,9 @@ If `^1.0` does not resolve in your environment, `dev-master` installs the defaul
 
 ## See also
 
-- [Installation](Installation)
-- [Endpoints](Endpoints)
-- [Access Control](Access-Control)
-- [Category Upsert](Category-Upsert)
-- [Attribute Values](Attribute-Values)
+- [Installation](Installation.md)
+- [Endpoints](Endpoints.md)
+- [Access Control](Access-Control.md)
+- [Category Upsert](Category-Upsert.md)
+- [Attribute Values](Attribute-Values.md)
 - dagster-magento library wiki: https://github.com/ddtcorex/dagster-magento/wiki

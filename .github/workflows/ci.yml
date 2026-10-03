@@ -77,5 +77,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check the wiki pages
-        run: scripts/check-docs.sh docs
+      - name: Check the documentation links
+        run: scripts/check-docs.sh docs README.md

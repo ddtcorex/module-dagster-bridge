@@ -97,7 +97,7 @@ Refusing is deliberate: answering null for every product would look like "no val
 
 SKUs are matched case-insensitively, as the database collation compares them, and every item answers under the **spelling the caller sent**. Asking for `24-mb04` finds the product stored as `24-MB04` and answers `"sku": "24-mb04"`. To learn the stored spelling, request the `sku` attribute code: its `default_value` is the stored SKU.
 
-A SKU that matches no product still gets its items, with neither value key. Use the [Product Index](Product-Index) to decide existence.
+A SKU that matches no product still gets its items, with neither value key. Use the [Product Index](Product-Index.md) to decide existence.
 
 ## store_id validation
 
@@ -131,8 +131,8 @@ Value rows are joined to the product through the metadata pool's link field (`en
 
 ## See also
 
-- [Endpoints](Endpoints)
-- [Product Index](Product-Index)
-- [Troubleshooting](Troubleshooting)
-- [Compatibility](Compatibility)
+- [Endpoints](Endpoints.md)
+- [Product Index](Product-Index.md)
+- [Troubleshooting](Troubleshooting.md)
+- [Compatibility](Compatibility.md)
 - dagster-magento library wiki: https://github.com/ddtcorex/dagster-magento/wiki

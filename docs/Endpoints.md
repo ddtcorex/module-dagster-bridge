@@ -49,7 +49,7 @@ curl -s "https://shop.example.com/rest/V1/dagster-bridge/capabilities" \
 }
 ```
 
-`version` is the constant `Model\Capabilities::VERSION`. `capabilities` lists one identifier per finished endpoint; the probe itself is not listed. No error other than authorization and routing. Details: [Capabilities](Capabilities).
+`version` is the constant `Model\Capabilities::VERSION`. `capabilities` lists one identifier per finished endpoint; the probe itself is not listed. No error other than authorization and routing. Details: [Capabilities](Capabilities.md).
 
 ## GET /V1/dagster-bridge/products/index
 
@@ -101,7 +101,7 @@ Errors:
 | --- | --- | --- |
 | 400 | `The limit must be between 1 and %1.` | `[20000]` |
 
-Details: [Product Index](Product-Index).
+Details: [Product Index](Product-Index.md).
 
 ## POST /V1/dagster-bridge/products/attribute-values
 
@@ -149,7 +149,7 @@ Errors (all 400, checked in this order):
 | `Unknown attribute codes: %1.` | one or more codes are not product attributes; all unknown codes listed, comma separated |
 | `Attribute codes this endpoint cannot read: %1. A static attribute must be a column of the product table, any other one must keep scalar values in a standard EAV value table.` | e.g. `category_ids`, `media_gallery`, `tier_price`; all such codes listed |
 
-Details: [Attribute Values](Attribute-Values).
+Details: [Attribute Values](Attribute-Values.md).
 
 ## POST /V1/dagster-bridge/categories/upsert
 
@@ -196,14 +196,14 @@ Errors:
 | 400 | `Category path "%1" could not be created: %2` | any other exception during the transaction; `%1` lists all requested paths; rolled back |
 | 503 | `Another category upsert is still running after 15 seconds; retry the call later.` | lock `dagster_bridge_category_upsert` not obtained within 15 s; nothing done |
 
-Details: [Category Upsert](Category-Upsert).
+Details: [Category Upsert](Category-Upsert.md).
 
 ## See also
 
-- [Access Control](Access-Control)
-- [Product Index](Product-Index)
-- [Attribute Values](Attribute-Values)
-- [Category Upsert](Category-Upsert)
-- [Capabilities](Capabilities)
-- [Troubleshooting](Troubleshooting)
+- [Access Control](Access-Control.md)
+- [Product Index](Product-Index.md)
+- [Attribute Values](Attribute-Values.md)
+- [Category Upsert](Category-Upsert.md)
+- [Capabilities](Capabilities.md)
+- [Troubleshooting](Troubleshooting.md)
 - dagster-magento library wiki: https://github.com/ddtcorex/dagster-magento/wiki

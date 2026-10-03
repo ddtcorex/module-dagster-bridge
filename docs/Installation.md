@@ -31,7 +31,7 @@ Place the module so that `registration.php` sits at:
 app/code/DDTCoreX/DagsterBridge/registration.php
 ```
 
-Copy only the runtime tree (`Api/`, `Model/`, `etc/`, `registration.php`, `composer.json`, plus `LICENSE`). Do not copy a development checkout's `vendor/`, `.phpstan.cache/`, `.phpunit.cache/` or `.phpcs-cache`: Magento scans every PHP file under `app/code`, and `setup:di:compile` fails on those leftovers (see [Troubleshooting](Troubleshooting)).
+Copy only the runtime tree (`Api/`, `Model/`, `etc/`, `registration.php`, `composer.json`, plus `LICENSE`). Do not copy a development checkout's `vendor/`, `.phpstan.cache/`, `.phpunit.cache/` or `.phpcs-cache`: Magento scans every PHP file under `app/code`, and `setup:di:compile` fails on those leftovers (see [Troubleshooting](Troubleshooting.md)).
 
 ## Enable
 
@@ -61,7 +61,7 @@ TOKEN=$(curl -s -X POST "https://shop.example.com/rest/V1/integration/admin/toke
   -d '{"username":"dagster","password":"<password>"}' | tr -d '"')
 ```
 
-(Admin token requests are subject to Magento's two factor authentication module when it is enabled; an integration access token is the alternative, see [Access Control](Access-Control).)
+(Admin token requests are subject to Magento's two factor authentication module when it is enabled; an integration access token is the alternative, see [Access Control](Access-Control.md).)
 
 Then probe:
 
@@ -112,8 +112,8 @@ The module creates no tables, columns or configuration values, so nothing is lef
 
 ## See also
 
-- [Home](Home)
-- [Access Control](Access-Control)
-- [Capabilities](Capabilities)
-- [Troubleshooting](Troubleshooting)
+- [Home](README.md)
+- [Access Control](Access-Control.md)
+- [Capabilities](Capabilities.md)
+- [Troubleshooting](Troubleshooting.md)
 - dagster-magento library wiki: https://github.com/ddtcorex/dagster-magento/wiki

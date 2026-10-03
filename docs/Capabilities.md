@@ -64,8 +64,8 @@ A future release that adds an endpoint adds an identifier; a client that does no
 
 ## See also
 
-- [Endpoints](Endpoints)
-- [Access Control](Access-Control)
-- [Development](Development)
-- [Installation](Installation)
+- [Endpoints](Endpoints.md)
+- [Access Control](Access-Control.md)
+- [Development](Development.md)
+- [Installation](Installation.md)
 - dagster-magento library wiki: https://github.com/ddtcorex/dagster-magento/wiki

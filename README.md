@@ -25,7 +25,7 @@ the answer does not list.
 
 Magento Open Source 2.4.6 or newer, PHP 8.1 to 8.5. Adobe Commerce content staging
 is not supported. The Magento patches the module was exercised on are listed under
-[Compatibility](https://github.com/ddtcorex/module-dagster-bridge/wiki/Compatibility).
+[Compatibility](docs/Compatibility.md).
 
 ## Install
 
@@ -45,20 +45,20 @@ curl -H "Authorization: Bearer $TOKEN" https://shop.example/rest/V1/dagster-brid
 
 ## Documentation
 
-The full documentation is in the [wiki](https://github.com/ddtcorex/module-dagster-bridge/wiki):
+The full documentation is in the [`docs/`](docs/README.md) folder:
 
 | | |
 | --- | --- |
-| [Installation](https://github.com/ddtcorex/module-dagster-bridge/wiki/Installation) | Composer, manual install, upgrade |
-| [Endpoints](https://github.com/ddtcorex/module-dagster-bridge/wiki/Endpoints) | every route, parameter and response |
-| [Access Control](https://github.com/ddtcorex/module-dagster-bridge/wiki/Access-Control) | the read and write resources |
-| [Category Upsert](https://github.com/ddtcorex/module-dagster-bridge/wiki/Category-Upsert) | path format, matching, locking |
-| [Troubleshooting](https://github.com/ddtcorex/module-dagster-bridge/wiki/Troubleshooting) | symptoms and fixes |
+| [Installation](docs/Installation.md) | Composer, manual install, upgrade |
+| [Endpoints](docs/Endpoints.md) | every route, parameter and response |
+| [Access Control](docs/Access-Control.md) | the read and write resources |
+| [Category Upsert](docs/Category-Upsert.md) | path format, matching, locking |
+| [Troubleshooting](docs/Troubleshooting.md) | symptoms and fixes |
 
 ## Contributing
 
 Pull requests are welcome; see
-[Development](https://github.com/ddtcorex/module-dagster-bridge/wiki/Development).
+[Development](docs/Development.md).
 Release notes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## License

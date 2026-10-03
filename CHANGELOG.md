@@ -14,12 +14,11 @@ turns the matching section below into the GitHub Release.
 
 ### Changed
 
-- Documentation only, no code change and no new version: the documentation moved to
-  the GitHub wiki, whose source is `docs/` (flat markdown) published by
-  `.github/workflows/sync-wiki.yml` and checked by `scripts/check-docs.sh` (also a
-  CI job). The README is short: what it is, install, links. The Magento patches the
-  module was exercised on (2.4.6-p15, 2.4.8-p5, 2.4.9; 2.4.7 not verified) are on
-  the wiki Compatibility page.
+- Documentation only, no code change and no new version: the detailed documentation
+  is now the markdown under `docs/` (index: `docs/README.md`), browsed on GitHub,
+  checked by `scripts/check-docs.sh` (a CI job). The README is short: what it is,
+  requirements, install and links. The Magento patches the module was exercised on
+  (2.4.6-p15, 2.4.8-p5, 2.4.9; 2.4.7 not verified) are on `docs/Compatibility.md`.
 - Two docblocks said the version is read from `composer.json` (it is the
   `Capabilities::VERSION` constant) and that category paths start at the root (a
   path that does not gets the root put in front of it).
