@@ -37,16 +37,16 @@ that repository from the per version records in its `compat/results/`.
 
 | Version | Magento patch | PHP | Database | Search | Bridge | Date | Result |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2.4.6-p15 | 2.4.6-p15 | 8.2.26 | MariaDB 10.11.18 | elasticsearch7 7.17.28 | 1.0.0 | 2026-09-30 | verified (15 of 15 passed) |
+| 2.4.6-p15 | 2.4.6-p15 | 8.2.26 | MariaDB 10.11.18 | elasticsearch 7.17.28 | 1.0.0 | 2026-10-03 | verified (15 of 15 passed) |
 | 2.4.7-p10 | - | - | - | - | - | 2026-09-30 | not provisioned: Composer security blocking refused a dependency of 2.4.7-p10 and govard bootstrap cannot disable it |
 | 2.4.8-p5 | 2.4.8-p5 | 8.4.1 | MariaDB 11.4.10 | opensearch 3.0 | 1.0.0 | 2026-10-02 | verified (15 of 15 passed) |
-| 2.4.9 | 2.4.9 | 8.5.9 | MariaDB 11.8.8 | opensearch 3.0 | 1.0.0 | 2026-09-30 | verified (15 of 15 passed) |
+| 2.4.9 | 2.4.9 | 8.5.9 | MariaDB 11.8.8 | opensearch 3.0 | 1.0.0 | 2026-10-02 | verified (15 of 15 passed) |
 
 2.4.7 has no verified row: its row says it was not provisioned, because it
 cannot be installed through govard (Composer's security blocking refuses the
 `league/flysystem` 2.x dependency), so it is neither claimed nor known to fail.
-2.4.8-p5 failed one library bulk test on its first run and passed all 15 two
-days later; the first run's log was lost and the failure is unexplained. A newer patch of a verified line is expected to behave the same
+The library's bulk catalog test was intermittent on 2.4.6-p15 and 2.4.8-p5 (a
+failed record followed by passing reruns, unexplained) and never failed on 2.4.9. A newer patch of a verified line is expected to behave the same
 but is unverified until the matrix is rerun. The Result column counts the whole
 library suite, not only the module.
 
