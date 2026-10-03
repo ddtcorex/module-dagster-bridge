@@ -1,0 +1,1 @@
+[Repository](https://github.com/ddtcorex/module-dagster-bridge) | [Releases](https://github.com/ddtcorex/module-dagster-bridge/releases) | [Changelog](https://github.com/ddtcorex/module-dagster-bridge/blob/master/CHANGELOG.md) | [dagster-magento](https://github.com/ddtcorex/dagster-magento/wiki) | MIT License
