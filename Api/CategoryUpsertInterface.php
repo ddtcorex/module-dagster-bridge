@@ -32,7 +32,8 @@ interface CategoryUpsertInterface
      * A path that already exists is not created again, and a path created by
      * an earlier path of the same call is reused.
      *
-     * @param string[] $paths Category paths; one that does not start with the root name has the root put in front of it.
+     * @param string[] $paths Category paths; one that does not start with the root name has the root put in
+     *                        front of it.
      * @param string $root Name of the root category the paths hang from.
      * @param string $separator Level separator inside the paths, which must not appear in any name.
      * @return \DDTCoreX\DagsterBridge\Api\Data\CategoryPathIdInterface[]
