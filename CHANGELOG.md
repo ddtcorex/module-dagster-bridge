@@ -6,7 +6,9 @@ Versioning.
 
 Release checklist: set `Capabilities::VERSION` to the new heading below (a
 unit test fails the build when the two disagree), then tag `vX.Y.Z`;
-composer.json carries no version field.
+composer.json carries no version field. Pushing the tag runs
+`.github/workflows/release.yml`, which checks the tag against that constant and
+turns the matching section below into the GitHub Release.
 
 ## [Unreleased]
 
