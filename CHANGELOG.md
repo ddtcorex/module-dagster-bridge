@@ -14,14 +14,21 @@ turns the matching section below into the GitHub Release.
 
 ### Changed
 
-- Documentation only: the README lists the Magento patches the module was
-  exercised on (2.4.6-p15, 2.4.8-p5, 2.4.9) instead of claiming every release
-  from 2.4.6, and says 2.4.7 was not verified. No code changed, so this is not a
-  new version.
+- Documentation only, no code change and no new version: the detailed documentation
+  is now the markdown under `docs/` (index: `docs/README.md`), browsed on GitHub,
+  checked by `scripts/check-docs.sh` (a CI job). The README is short: what it is,
+  requirements, install and links. The Magento patches the module was exercised on
+  (2.4.6-p15, 2.4.8-p5, 2.4.9; 2.4.7 not verified) are on `docs/Compatibility.md`.
+- Two docblocks said the version is read from `composer.json` (it is the
+  `Capabilities::VERSION` constant) and that category paths start at the root (a
+  path that does not gets the root put in front of it).
+- The 1.0.0 entry below said each endpoint has its own ACL resource; the three read
+  endpoints share `::read` and the upsert has `::write`.
 
 ## [1.0.0] - 2026-09-30
 
-First release. Four service contracts, each one behind its own ACL resource,
+First release. Four service contracts (three sharing the read ACL resource, the
+upsert behind its own write resource),
 with the capabilities endpoint telling a client what the store offers so an
 older module degrades per capability instead of failing.
 

@@ -71,3 +71,11 @@ jobs:
 
       - name: Unit tests
         run: vendor/bin/phpunit -c Test/Unit/phpunit.xml.dist
+
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the documentation links
+        run: scripts/check-docs.sh docs README.md

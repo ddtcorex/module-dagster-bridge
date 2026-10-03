@@ -19,7 +19,7 @@ interface CapabilitiesResultInterface
     public const CAPABILITIES = 'capabilities';
 
     /**
-     * Version of this module, read from its own composer.json.
+     * Version of this module, the Capabilities::VERSION constant (composer.json carries no version field).
      *
      * @return string
      */
